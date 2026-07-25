@@ -658,16 +658,7 @@ if st.session_state.selected_school is not None:
       <div class="ts-modal">
         <div style="position:relative">
           {hero_html}
-          <div style="position:absolute;top:12px;right:12px;z-index:10000">
-            <span style="
-              display:inline-flex;align-items:center;justify-content:center;
-              width:34px;height:34px;border-radius:50%;
-              background:rgba(0,0,0,0.45);color:#fff;
-              font-size:18px;font-weight:700;line-height:1;
-              cursor:pointer;user-select:none;
-              box-shadow:0 2px 8px rgba(0,0,0,0.25);
-            ">&#x2715;</span>
-          </div>
+
         </div>
         <div class="ts-modal-body">
           <div class="ts-modal-logo-name">
@@ -705,12 +696,43 @@ if st.session_state.selected_school is not None:
     """
     st.markdown(modal_html, unsafe_allow_html=True)
 
-    # Close button rendered as a Streamlit button (sits above the modal via z-index)
-    close_col = st.columns([8, 1])[1]
-    with close_col:
-        if st.button("✕ Close", key="close_modal", type="secondary"):
-            st.session_state.selected_school = None
-            st.rerun()
+    # Style the close button to look like a floating ✕ icon over the modal hero.
+    # We use a fixed-position CSS trick: the button is rendered in the normal flow
+    # but CSS repositions it to sit in the top-right of the modal overlay.
+    st.markdown(f"""
+    <style>
+    /* Target only the close button by its data-testid key */
+    div[data-testid="stButton"] button[kind="secondary"] {{
+        position: fixed;
+        top: calc(50vh - 45vh + 12px);
+        right: calc(50vw - min(380px, 50vw - 20px) + 12px);
+        z-index: 10001;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        background: rgba(0,0,0,0.45) !important;
+        color: #fff !important;
+        border: none !important;
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }}
+    div[data-testid="stButton"] button[kind="secondary"]:hover {{
+        background: rgba(0,0,0,0.65) !important;
+        color: #fff !important;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    if st.button("✕", key="close_modal", type="secondary"):
+        st.session_state.selected_school = None
+        st.rerun()
 
 
 # ── Card grid ──────────────────────────────────────────────────────────────
