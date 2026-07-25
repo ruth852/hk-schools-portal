@@ -364,6 +364,37 @@ st.markdown(f"""
 .ts-empty .icon {{ font-size: 48px; margin-bottom: 12px; }}
 .ts-empty h3 {{ font-size: 18px; color: {BLACK}; margin-bottom: 6px; }}
 
+/* ── Featured card ── */
+.ts-card.ts-featured {{
+    border: 2px solid {CORAL};
+    box-shadow: 0 2px 12px rgba(235,89,70,0.18);
+}}
+.ts-card.ts-featured:hover {{
+    box-shadow: 0 8px 28px rgba(235,89,70,0.28);
+}}
+.ts-featured-badge {{
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: {CORAL};
+    color: {WHITE};
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 9px;
+    border-radius: 20px;
+    margin-bottom: 6px;
+}}
+.ts-featured-section-label {{
+    font-size: 13px;
+    font-weight: 700;
+    color: {GREY_TXT};
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 12px 2px;
+}}
+
 /* Hide the Streamlit button label under each card */
 div[data-testid="column"] > div > div > div > div > div > button {{
     display: none;
@@ -649,6 +680,23 @@ if st.session_state.selected_school is not None:
     st.session_state.selected_school = None
 
 
+# ── Featured schools ──────────────────────────────────────────────────────
+# Partial-match list: a school is featured if any keyword appears in its name.
+FEATURED_KEYWORDS = [
+    "Shrewsbury", "Nord Anglia", "Chinese International",
+    "Hong Kong International School", "HKIS",
+    "ISF Academy", "ISF",
+    "German Swiss", "GSIS",
+    "Kellett", "Harrow",
+    "Hong Kong Academy", "YMCA of Hong Kong Christian College", "YMCA Academy",
+]
+
+
+def is_featured(school_name: str) -> bool:
+    name_lower = school_name.lower()
+    return any(kw.lower() in name_lower for kw in FEATURED_KEYWORDS)
+
+
 # ── Card grid ──────────────────────────────────────────────────────────────
 if fdf.empty:
     st.markdown("""
@@ -660,71 +708,97 @@ if fdf.empty:
     """, unsafe_allow_html=True)
 else:
     COLS = 3
-    rows_data = [fdf.iloc[i:i+COLS] for i in range(0, len(fdf), COLS)]
 
-    for row_group in rows_data:
-        cols = st.columns(COLS)
-        for col_idx, (_, school_row) in enumerate(row_group.iterrows()):
-            name       = str(school_row.get("Name of School", "")).strip()
-            district   = str(school_row.get("District", "")).strip()
-            curriculum = str(school_row.get("Curriculum", "")).strip()
-            level      = str(school_row.get("🪜 Level", "")).strip()
-            desc       = str(school_row.get("Description", "")).strip()
-            photo_url  = str(school_row.get("Photo URL", "")).strip()
-            logo_url   = str(school_row.get("Logo URL", "")).strip()
-            initials   = get_initials(name)
-            grad       = district_gradient(district)
+    # Split into featured (top) and standard (below)
+    featured_mask = fdf["Name of School"].astype(str).apply(is_featured)
+    featured_df   = fdf[featured_mask]
+    standard_df   = fdf[~featured_mask]
 
-            if photo_url.startswith("http"):
-                photo_html = f'<img src="{photo_url}" class="ts-card-photo" alt="{name}">'
-            else:
-                photo_html = (
-                    f'<div class="ts-card-photo-placeholder" style="background:{grad}">'
-                    f'{initials}</div>'
+    def render_card_grid(grid_df, section_label=None):
+        """Render a section label (optional) then a 3-column card grid."""
+        if grid_df.empty:
+            return
+        if section_label:
+            st.markdown(
+                f'<div class="ts-featured-section-label">{section_label}</div>',
+                unsafe_allow_html=True,
+            )
+        rows_data = [grid_df.iloc[i:i+COLS] for i in range(0, len(grid_df), COLS)]
+        for row_group in rows_data:
+            cols = st.columns(COLS)
+            for col_idx, (_, school_row) in enumerate(row_group.iterrows()):
+                name       = str(school_row.get("Name of School", "")).strip()
+                district   = str(school_row.get("District", "")).strip()
+                curriculum = str(school_row.get("Curriculum", "")).strip()
+                level      = str(school_row.get("🪜 Level", "")).strip()
+                desc       = str(school_row.get("Description", "")).strip()
+                photo_url  = str(school_row.get("Photo URL", "")).strip()
+                logo_url   = str(school_row.get("Logo URL", "")).strip()
+                initials   = get_initials(name)
+                grad       = district_gradient(district)
+                featured   = is_featured(name)
+
+                if photo_url.startswith("http"):
+                    photo_html = '<img src="' + photo_url + '" class="ts-card-photo" alt="' + name + '">'
+                else:
+                    photo_html = '<div class="ts-card-photo-placeholder" style="background:' + grad + '">' + initials + '</div>'
+
+                if logo_url.startswith("http"):
+                    logo_html = '<img src="' + logo_url + '" class="ts-card-logo" alt="logo">'
+                else:
+                    logo_html = '<div class="ts-card-logo-fallback">' + initials + '</div>'
+
+                tags_html = ""
+                if district:
+                    tags_html += '<span class="ts-tag ts-tag-district">' + district + '</span>'
+                if curriculum:
+                    tags_html += '<span class="ts-tag ts-tag-curriculum">' + curriculum + '</span>'
+                if level:
+                    tags_html += '<span class="ts-tag ts-tag-level">' + level + '</span>'
+
+                short_desc = (desc[:110] + "…") if len(desc) > 110 else desc
+
+                badge_html = '<div class="ts-featured-badge">⭐ Featured</div>' if featured else ""
+                card_class = 'ts-card ts-featured' if featured else 'ts-card'
+
+                card_html = (
+                    '<div class="' + card_class + '">'
+                    + photo_html
+                    + '<div class="ts-card-body">'
+                    + badge_html
+                    + '<div class="ts-card-logo-row">'
+                    + logo_html
+                    + '<div class="ts-card-name">' + name + '</div>'
+                    + '</div>'
+                    + '<div class="ts-card-tags">' + tags_html + '</div>'
+                    + '<div class="ts-card-desc">' + short_desc + '</div>'
+                    + '<div class="ts-card-cta">View full profile →</div>'
+                    + '</div>'
+                    + '</div>'
                 )
 
-            if logo_url.startswith("http"):
-                logo_html = f'<img src="{logo_url}" class="ts-card-logo" alt="logo">'
-            else:
-                logo_html = f'<div class="ts-card-logo-fallback">{initials}</div>'
+                with cols[col_idx]:
+                    st.markdown(card_html, unsafe_allow_html=True)
+                    if st.button(
+                        f"View {name}",
+                        key=f"card_{name}",
+                        use_container_width=True,
+                        type="primary",
+                    ):
+                        st.session_state.selected_school = school_row.to_dict()
+                        st.rerun()
 
-            tags_html = ""
-            if district:
-                tags_html += f'<span class="ts-tag ts-tag-district">{district}</span>'
-            if curriculum:
-                tags_html += f'<span class="ts-tag ts-tag-curriculum">{curriculum}</span>'
-            if level:
-                tags_html += f'<span class="ts-tag ts-tag-level">{level}</span>'
+            st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
-            short_desc = (desc[:110] + "…") if len(desc) > 110 else desc
-
-            card_html = (
-                '<div class="ts-card">'
-                + photo_html
-                + '<div class="ts-card-body">'
-                + '<div class="ts-card-logo-row">'
-                + logo_html
-                + '<div class="ts-card-name">' + name + '</div>'
-                + '</div>'
-                + '<div class="ts-card-tags">' + tags_html + '</div>'
-                + '<div class="ts-card-desc">' + short_desc + '</div>'
-                + '<div class="ts-card-cta">View full profile →</div>'
-                + '</div>'
-                + '</div>'
-            )
-
-            with cols[col_idx]:
-                st.markdown(card_html, unsafe_allow_html=True)
-                if st.button(
-                    f"View {name}",
-                    key=f"card_{name}",
-                    use_container_width=True,
-                    type="primary",
-                ):
-                    st.session_state.selected_school = school_row.to_dict()
-                    st.rerun()
-
-        st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+    # Render featured schools first, then the rest
+    render_card_grid(featured_df, section_label="⭐ Featured Schools")
+    if not featured_df.empty and not standard_df.empty:
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='ts-featured-section-label'>All Schools</div>",
+            unsafe_allow_html=True,
+        )
+    render_card_grid(standard_df)
 
 
 # ── Footer ─────────────────────────────────────────────────────────────────
