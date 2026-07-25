@@ -39,7 +39,6 @@ def main():
 
     updated_count = 0
     for idx, row in df.iterrows():
-        # Scrape photo if column is empty
         if not row["Photo URL"] or str(row["Photo URL"]).strip() == "":
             target_url = row.get("URL for School Fees") or row.get("🌐 Website") or row.get("Website")
             if target_url:
