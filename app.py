@@ -658,6 +658,16 @@ if st.session_state.selected_school is not None:
       <div class="ts-modal">
         <div style="position:relative">
           {hero_html}
+          <div style="position:absolute;top:12px;right:12px;z-index:10000">
+            <span style="
+              display:inline-flex;align-items:center;justify-content:center;
+              width:34px;height:34px;border-radius:50%;
+              background:rgba(0,0,0,0.45);color:#fff;
+              font-size:18px;font-weight:700;line-height:1;
+              cursor:pointer;user-select:none;
+              box-shadow:0 2px 8px rgba(0,0,0,0.25);
+            ">&#x2715;</span>
+          </div>
         </div>
         <div class="ts-modal-body">
           <div class="ts-modal-logo-name">
