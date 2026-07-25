@@ -22,17 +22,28 @@ def load_data():
     csv_name = "hongkong_schools.csv"
     
     if not os.path.exists(csv_name):
-        st.error(f"❌ Could not find `{csv_name}` in your GitHub repository.")
+        st.error(f"❌ File `{csv_name}` not found in repository.")
         st.stop()
         
-    df = pd.read_csv(csv_name)
-    
-    # Clean hidden spaces from column headers (e.g. 'Head ' -> 'Head')
+    try:
+        # Standard fast load
+        df = pd.read_csv(csv_name)
+    except Exception:
+        try:
+            # Flexible load: skips corrupt rows & handles messy quotes
+            df = pd.read_csv(csv_name, engine="python", on_bad_lines="skip")
+        except Exception as e:
+            st.error(f"❌ Could not parse `{csv_name}`: {e}")
+            st.stop()
+
+    # Clean hidden spaces from column headers
     df.columns = df.columns.astype(str).str.strip()
     df = df.fillna("")
-    
+
     if "Photo URL" not in df.columns:
         df["Photo URL"] = ""
+        
+    return df
         
     return df
 
