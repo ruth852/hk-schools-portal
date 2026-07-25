@@ -658,6 +658,25 @@ def show_profile(row: dict):
 
     st.markdown('<div class="ts-fee-box">' + fee_inner + '</div>', unsafe_allow_html=True)
 
+    # ── Embedded Google Map ──
+    # Uses the Google Maps Embed API (no API key required for the search embed).
+    # The iframe searches for the school name + Hong Kong so it centres on the
+    # correct location without needing a stored address.
+    map_query = urllib.parse.quote(f"{name} Hong Kong")
+    map_embed_url = f"https://maps.google.com/maps?q={map_query}&output=embed&z=15"
+
+    st.markdown(
+        '<div style="margin-bottom:16px">'
+        '<div style="font-size:10px;font-weight:700;text-transform:uppercase;'
+        'letter-spacing:0.07em;color:#6B7280;margin-bottom:6px">Location</div>'
+        '<iframe src="' + map_embed_url + '" '
+        'width="100%" height="220" style="border:0;border-radius:10px;display:block" '
+        'allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade">'
+        '</iframe>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
     # ── Action buttons ──
     query_str = urllib.parse.quote(f"{name} Hong Kong")
     maps_url  = f"https://www.google.com/maps/search/?api=1&query={query_str}"
@@ -667,7 +686,7 @@ def show_profile(row: dict):
     st.markdown(
         f'<div class="ts-modal-btns">'
         f'<a href="{wa_url}" target="_blank" class="ts-btn ts-btn-primary">💬 WhatsApp Enquiry</a>'
-        f'<a href="{maps_url}" target="_blank" class="ts-btn ts-btn-secondary">📍 Google Maps</a>'
+        f'<a href="{maps_url}" target="_blank" class="ts-btn ts-btn-secondary">📍 Open in Maps</a>'
         f'</div>',
         unsafe_allow_html=True,
     )
