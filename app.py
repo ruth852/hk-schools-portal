@@ -9,24 +9,30 @@ st.set_page_config(
     layout="wide"
 )
 
+CSV_FILE = "hongkong_schools.csv"
+
+# Function to get file timestamp so cache automatically resets on file changes
+def get_file_mtime(file_path):
+    return os.path.getmtime(file_path) if os.path.exists(file_path) else 0
+
 @st.cache_data
-def load_data():
-    csv_file = "hongkong_schools.csv"
-    if not os.path.exists(csv_file):
-        st.error(f"❌ File `{csv_file}` not found.")
+def load_data(mtime):
+    if not os.path.exists(CSV_FILE):
+        st.error(f"❌ File `{CSV_FILE}` not found.")
         st.stop()
         
-    df = pd.read_csv(csv_file, engine="python", on_bad_lines="skip")
+    df = pd.read_csv(CSV_FILE, engine="python", on_bad_lines="skip")
     df.columns = df.columns.astype(str).str.strip()
     
-    # Ensure optional columns exist safely
+    # Ensure optional columns exist safely without throwing errors
     for col in ["Photo URL", "Annual Fees", "Description"]:
         if col not in df.columns:
             df[col] = ""
             
     return df.fillna("")
 
-df = load_data()
+# Load data with automatic cache invalidation
+df = load_data(get_file_mtime(CSV_FILE))
 
 # Header
 st.title("🏫 Hong Kong Schools Directory")
@@ -59,11 +65,11 @@ if search_query:
 col1, col2, col3 = st.columns(3)
 col1.metric("Total Schools", len(df))
 col2.metric("Matching Search", len(filtered_df))
-col3.metric("Districts", len([d for d in df["District"].unique() if d]))
+col3.metric("Districts Covered", len([d for d in df["District"].unique() if d]))
 
 st.divider()
 
-# Clickable School Cards
+# Clickable School Profiles
 if filtered_df.empty:
     st.info("No schools match your search criteria. Try adjusting your filters.")
 else:
@@ -77,11 +83,11 @@ else:
         description = str(row.get("Description", "")).strip()
         photo_url = str(row.get("Photo URL", "")).strip()
 
-        # Accordion Profile Card
+        # Accordion Card
         with st.expander(f"🏫 **{school_name}**  —  *{district} | {curriculum}*", expanded=False):
             col_img, col_info = st.columns([1, 2])
             
-            # Photo Display
+            # Photo Section
             with col_img:
                 if photo_url and photo_url.startswith("http"):
                     st.image(photo_url, use_container_width=True)
@@ -96,11 +102,11 @@ else:
                         unsafe_allow_html=True
                     )
 
-            # Facts & Description
+            # Facts & Descriptions
             with col_info:
                 st.subheader(school_name)
                 
-                # Neutral Description
+                # Neutral 3rd-person description
                 if description:
                     st.markdown(f"*{description}*")
                     st.write("")
@@ -113,7 +119,7 @@ else:
                     st.write(f"🏛️ **School Type:** {school_type}")
                     st.write(f"🪜 **Grade Level:** {level}")
                 
-                # Fees
+                # Annual Fees
                 if annual_fees:
                     st.success(f"💰 **Annual Tuition Fees:** {annual_fees}")
                 else:
@@ -121,7 +127,7 @@ else:
                 
                 st.divider()
                 
-                # Links & Direct WhatsApp Button
+                # Action Buttons
                 query_str = urllib.parse.quote(f"{school_name} Hong Kong")
                 maps_url = f"https://www.google.com/maps/search/?api=1&query={query_str}"
                 
