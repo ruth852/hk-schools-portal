@@ -1,33 +1,37 @@
-import streamlit as st
+import os
 import pandas as pd
+import streamlit as st
 
-# ---------------------------------------------------------
-# 1. PAGE SETUP & BRANDING
-# ---------------------------------------------------------
-st.set_page_config(
-    page_title="Hong Kong Schools Portal", 
-    layout="wide", 
-    page_icon="🏫"
-)
+# 1. PAGE SETUP
+st.set_page_config(page_title="Hong Kong Schools Portal", layout="wide", page_icon="🏫")
 
-# Custom Header with Company Logo & Name
+# Header
 col_logo, col_title = st.columns([1, 4])
 with col_logo:
-    # REPLACE THIS URL with your company logo link
     st.image("https://via.placeholder.com/150x150.png?text=Your+Logo", width=110)
 
 with col_title:
     st.title("Hong Kong Schools Intelligence Directory")
-    st.caption("Powered by **Your Company Name** | Live 2026/2027 Academic Insights")
+    st.caption("Live Academic Insights")
 
 st.markdown("---")
 
-# ---------------------------------------------------------
-# 2. LOAD DATA
-# ---------------------------------------------------------
+# 2. DIAGNOSTIC FILE LOADER
 @st.cache_data
 def load_data():
-    df = pd.read_csv("hongkong_schools.csv")
+    csv_name = "hongkong_schools.csv"
+    
+    # Check if file exists on GitHub
+    if not os.path.exists(csv_name):
+        # Find all files currently visible to Streamlit
+        visible_files = os.listdir(".")
+        st.error(f"❌ **File Not Found:** Python cannot find `{csv_name}` in the root folder.")
+        st.write("📁 **Here are the files Streamlit CAN see in your GitHub repo right now:**")
+        st.json(visible_files)
+        st.info("💡 **Fix:** Compare the file names above with `hongkong_schools.csv`. Check for capital letters, typos, or hidden `.txt` extensions!")
+        st.stop()
+        
+    df = pd.read_csv(csv_name)
     df = df.fillna("")
     if "Photo URL" not in df.columns:
         df["Photo URL"] = ""
@@ -35,28 +39,25 @@ def load_data():
 
 df = load_data()
 
-# ---------------------------------------------------------
 # 3. SIDEBAR SEARCH & FILTERS
-# ---------------------------------------------------------
 st.sidebar.header("🔍 Search & Filter")
-
 search_query = st.sidebar.text_input("Search keywords, Head, or Area:")
 
-districts = ["All"] + sorted([d for d in df["District"].unique() if d])
+districts = ["All"] + sorted([d for d in df["District"].unique() if str(d).strip()])
 selected_district = st.sidebar.selectbox("District:", districts)
 
-levels = ["All"] + sorted([l for l in df["🪜 Level"].unique() if l])
+levels = ["All"] + sorted([l for l in df["🪜 Level"].unique() if str(l).strip()])
 selected_level = st.sidebar.selectbox("Level:", levels)
 
-# Filtering Engine
+# Filter logic
 filtered_df = df.copy()
 
 if search_query:
     filtered_df = filtered_df[
-        filtered_df["Name of School"].str.contains(search_query, case=False) |
-        filtered_df["Description"].str.contains(search_query, case=False) |
-        filtered_df["Head"].str.contains(search_query, case=False) |
-        filtered_df["District"].str.contains(search_query, case=False)
+        filtered_df["Name of School"].astype(str).str.contains(search_query, case=False) |
+        filtered_df["Description"].astype(str).str.contains(search_query, case=False) |
+        filtered_df["Head"].astype(str).str.contains(search_query, case=False) |
+        filtered_df["District"].astype(str).str.contains(search_query, case=False)
     ]
 
 if selected_district != "All":
@@ -67,19 +68,15 @@ if selected_level != "All":
 
 st.write(f"Showing **{len(filtered_df)}** matching schools")
 
-# ---------------------------------------------------------
-# 4. SCHOOL PROFILE CARDS
-# ---------------------------------------------------------
+# 4. CARDS VIEW
 for _, school in filtered_df.iterrows():
     with st.container():
         card_col1, card_col2 = st.columns([1, 2.5])
 
-        # Photo Column
         with card_col1:
             photo = school["Photo URL"] if school["Photo URL"] else "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600"
             st.image(photo, use_column_width=True)
 
-        # Info Column
         with card_col2:
             st.subheader(school["Name of School"])
             st.caption(f"📍 **{school['District']}** | 🪜 **{school['🪜 Level']}** | 🎓 **{school['Curriculum']}**")
