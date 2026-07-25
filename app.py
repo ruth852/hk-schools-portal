@@ -337,18 +337,29 @@ st.markdown(f"""
     padding: 14px 16px;
     margin-bottom: 20px;
 }}
-.ts-fee-box .fee-label {{
+.ts-fee-row {{
+    margin-top: 8px;
+}}
+.ts-fee-row-label {{
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: {CORAL};
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }}
-.ts-fee-box .fee-value {{
-    font-size: 15px;
+.ts-fee-row-value {{
+    font-size: 14px;
     font-weight: 700;
     color: {BLACK};
+}}
+.ts-fee-notes {{
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(235,89,70,0.2);
+    font-size: 12px;
+    color: {GREY_TXT};
+    line-height: 1.5;
 }}
 .ts-modal-btns {{
     display: flex;
@@ -622,33 +633,32 @@ if st.session_state.selected_school is not None:
     if stype:
         tags_html += f'<span class="ts-tag ts-tag-type">{stype}</span>'
 
-    # Fee box — build rows only for fields that have data
+    # Fee box — build rows only for fields that have data.
+    # Use plain string concatenation (not f-strings with style attributes) to
+    # avoid brace-escaping conflicts when these strings are later embedded in
+    # the outer modal_html f-string.
     def _fee_row(label, value):
         if value and value not in ("nan", "N/A", "None", "none", ""):
-            return (f'<div style="margin-top:8px">' 
-                    f'<span style="font-size:11px;font-weight:600;text-transform:uppercase;'
-                    f'letter-spacing:0.06em;color:{CORAL}">{label}</span><br>'
-                    f'<span style="font-size:14px;font-weight:700;color:{BLACK}">{value}</span></div>')
+            return (
+                '<div class="ts-fee-row">'
+                '<div class="ts-fee-row-label">' + label + '</div>'
+                '<div class="ts-fee-row-value">' + value + '</div>'
+                '</div>'
+            )
         return ""
 
     fee_year_label = f" ({fee_year})" if fee_year and fee_year not in ("nan", "") else ""
     tuition_display = tuition if tuition and tuition not in ("nan", "") else "Contact school for current fee structure"
 
-    fee_rows = _fee_row(f"Tuition Fees{fee_year_label}", tuition_display)
+    fee_rows = _fee_row("Tuition Fees" + fee_year_label, tuition_display)
     fee_rows += _fee_row("Capital Levy", capital)
     fee_rows += _fee_row("Debenture", debenture)
 
     fee_notes_html = ""
     if fee_notes and fee_notes not in ("nan", "", "Not yet researched"):
-        fee_notes_html = (f'<div style="margin-top:10px;padding-top:10px;border-top:1px solid {CORAL}30;'
-                          f'font-size:12px;color:{GREY_TXT};line-height:1.5">'
-                          f'<em>{fee_notes}</em></div>')
+        fee_notes_html = '<div class="ts-fee-notes"><em>' + fee_notes + '</em></div>'
 
-    fee_html = f"""
-    <div class="ts-fee-box">
-        {fee_rows}
-        {fee_notes_html}
-    </div>"""
+    fee_html = '<div class="ts-fee-box">' + fee_rows + fee_notes_html + '</div>'
 
     # Description
     desc_html = f'<p class="ts-modal-desc">{desc}</p>' if desc else ""
@@ -696,43 +706,40 @@ if st.session_state.selected_school is not None:
     """
     st.markdown(modal_html, unsafe_allow_html=True)
 
-    # Style the close button to look like a floating ✕ icon over the modal hero.
-    # We use a fixed-position CSS trick: the button is rendered in the normal flow
-    # but CSS repositions it to sit in the top-right of the modal overlay.
-    st.markdown(f"""
+    # Close button: rendered as a standard Streamlit button, styled via CSS
+    # to appear as a floating ✕ circle fixed to the top-right of the viewport
+    # (which aligns with the modal corner on all screen sizes).
+    st.markdown("""
     <style>
-    /* Target only the close button by its data-testid key */
-    div[data-testid="stButton"] button[kind="secondary"] {{
-        position: fixed;
-        top: calc(50vh - 45vh + 12px);
-        right: calc(50vw - min(380px, 50vw - 20px) + 12px);
-        z-index: 10001;
-        width: 36px !important;
-        height: 36px !important;
-        min-width: 36px !important;
+    #close-modal-btn > div > button {
+        position: fixed !important;
+        top: 18px !important;
+        right: 18px !important;
+        z-index: 10001 !important;
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
         padding: 0 !important;
         border-radius: 50% !important;
-        background: rgba(0,0,0,0.45) !important;
-        color: #fff !important;
-        border: none !important;
+        background: rgba(0,0,0,0.50) !important;
+        color: #ffffff !important;
+        border: 2px solid rgba(255,255,255,0.6) !important;
         font-size: 18px !important;
         font-weight: 700 !important;
         line-height: 1 !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }}
-    div[data-testid="stButton"] button[kind="secondary"]:hover {{
-        background: rgba(0,0,0,0.65) !important;
-        color: #fff !important;
-    }}
+        box-shadow: 0 2px 10px rgba(0,0,0,0.35) !important;
+        cursor: pointer !important;
+    }
+    #close-modal-btn > div > button:hover {
+        background: rgba(0,0,0,0.75) !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-    if st.button("✕", key="close_modal", type="secondary"):
-        st.session_state.selected_school = None
-        st.rerun()
+    with st.container(key="close-modal-btn"):
+        if st.button("✕", key="close_modal"):
+            st.session_state.selected_school = None
+            st.rerun()
 
 
 # ── Card grid ──────────────────────────────────────────────────────────────
