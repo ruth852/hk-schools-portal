@@ -442,7 +442,12 @@ def load_data(mtime):
     df = pd.read_csv(CSV_FILE, engine="python", on_bad_lines="skip").fillna("")
     df.columns = df.columns.astype(str).str.strip()
     required = ["Name of School", "Curriculum", "District", "Type",
-                "🪜 Level", "Annual Fees", "Description", "Photo URL", "Logo URL"]
+                "🪜 Level", "Tuition Fees (HK$)", "Fee Year", "Capital Levy (HK$)",
+                "Debenture (HK$)", "Fee Notes", "Description", "Photo URL", "Logo URL",
+                "Research Status"]
+    # Backwards-compatibility: map old column name if present
+    if "Annual Fees" in df.columns and "Tuition Fees (HK$)" not in df.columns:
+        df.rename(columns={"Annual Fees": "Tuition Fees (HK$)"}, inplace=True)
     for col in required:
         if col not in df.columns:
             df[col] = ""
@@ -576,7 +581,11 @@ if st.session_state.selected_school is not None:
     curriculum = str(row.get("Curriculum", "")).strip()
     stype      = str(row.get("Type", "")).strip()
     level      = str(row.get("🪜 Level", "")).strip()
-    fees       = str(row.get("Annual Fees", "")).strip()
+    tuition    = str(row.get("Tuition Fees (HK$)", "")).strip()
+    fee_year   = str(row.get("Fee Year", "")).strip()
+    capital    = str(row.get("Capital Levy (HK$)", "")).strip()
+    debenture  = str(row.get("Debenture (HK$)", "")).strip()
+    fee_notes  = str(row.get("Fee Notes", "")).strip()
     desc       = str(row.get("Description", "")).strip()
     photo_url  = str(row.get("Photo URL", "")).strip()
     logo_url   = str(row.get("Logo URL", "")).strip()
@@ -613,12 +622,32 @@ if st.session_state.selected_school is not None:
     if stype:
         tags_html += f'<span class="ts-tag ts-tag-type">{stype}</span>'
 
-    # Fee box
-    fee_display = fees if fees and fees not in ("nan", "") else "Contact school for current fee structure"
+    # Fee box — build rows only for fields that have data
+    def _fee_row(label, value):
+        if value and value not in ("nan", "N/A", "None", "none", ""):
+            return (f'<div style="margin-top:8px">' 
+                    f'<span style="font-size:11px;font-weight:600;text-transform:uppercase;'
+                    f'letter-spacing:0.06em;color:{CORAL}">{label}</span><br>'
+                    f'<span style="font-size:14px;font-weight:700;color:{BLACK}">{value}</span></div>')
+        return ""
+
+    fee_year_label = f" ({fee_year})" if fee_year and fee_year not in ("nan", "") else ""
+    tuition_display = tuition if tuition and tuition not in ("nan", "") else "Contact school for current fee structure"
+
+    fee_rows = _fee_row(f"Tuition Fees{fee_year_label}", tuition_display)
+    fee_rows += _fee_row("Capital Levy", capital)
+    fee_rows += _fee_row("Debenture", debenture)
+
+    fee_notes_html = ""
+    if fee_notes and fee_notes not in ("nan", "", "Not yet researched"):
+        fee_notes_html = (f'<div style="margin-top:10px;padding-top:10px;border-top:1px solid {CORAL}30;'
+                          f'font-size:12px;color:{GREY_TXT};line-height:1.5">'
+                          f'<em>{fee_notes}</em></div>')
+
     fee_html = f"""
     <div class="ts-fee-box">
-        <div class="fee-label">Annual Fees</div>
-        <div class="fee-value">💰 {fee_display}</div>
+        {fee_rows}
+        {fee_notes_html}
     </div>"""
 
     # Description
