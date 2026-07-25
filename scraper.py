@@ -1,37 +1,55 @@
-name: Weekly School Data Scraper & Sanitizer
+import os
+import urllib.parse
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 
-on:
-  schedule:
-    - cron: '0 8 * * 1'   # Runs automatically every Monday at 8:00 AM UTC
-  workflow_dispatch:        # Enables the manual "Run workflow" button in GitHub
+INPUT_CSV = "hongkong_schools.csv"
+OUTPUT_CSV = "hongkong_schools.csv"
+HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
-jobs:
-  scrape-sanitize-and-update:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+def extract_photo(url):
+    if not url or not isinstance(url, str) or not url.startswith("http"):
+        return ""
+    try:
+        res = requests.get(url, headers=HEADERS, timeout=6)
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.text, "html.parser")
+            og_img = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "og:image"})
+            if og_img and og_img.get("content"):
+                img_url = og_img["content"]
+                return urllib.parse.urljoin(url, img_url) if not img_url.startswith("http") else img_url
+    except Exception:
+        pass
+    return ""
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+def main():
+    if not os.path.exists(INPUT_CSV):
+        print(f"❌ '{INPUT_CSV}' not found.")
+        return
 
-      - name: Install dependencies
-        run: pip install pandas requests beautifulsoup4
+    try:
+        df = pd.read_csv(INPUT_CSV, engine="python", on_bad_lines="skip").fillna("")
+    except Exception as e:
+        print(f"⚠️ Error reading CSV: {e}")
+        return
 
-      - name: Step 1 - Sanitize Input CSV
-        run: python fix_csv.py
+    if "Photo URL" not in df.columns:
+        df["Photo URL"] = ""
 
-      - name: Step 2 - Run Photo Scraper
-        run: python scraper.py
+    updated_count = 0
+    for idx, row in df.iterrows():
+        # Scrape photo if column is empty
+        if not row["Photo URL"] or str(row["Photo URL"]).strip() == "":
+            target_url = row.get("URL for School Fees") or row.get("🌐 Website") or row.get("Website")
+            if target_url:
+                photo = extract_photo(str(target_url).strip())
+                if photo:
+                    df.at[idx, "Photo URL"] = photo
+                    updated_count += 1
 
-      - name: Step 3 - Sanitize Output CSV (Final Pass)
-        run: python fix_csv.py
+    df.to_csv(OUTPUT_CSV, index=False)
+    print(f"✅ Scraping completed! Updated {updated_count} school photo(s).")
 
-      - name: Step 4 - Commit Clean File to GitHub
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add hongkong_schools.csv
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-sanitize CSV and update photos" && git push)
+if __name__ == "__main__":
+    main()
