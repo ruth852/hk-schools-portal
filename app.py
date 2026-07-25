@@ -1,4 +1,5 @@
 import os
+import re
 import urllib.parse
 import pandas as pd
 import streamlit as st
@@ -11,7 +12,6 @@ st.set_page_config(
 
 CSV_FILE = "hongkong_schools.csv"
 
-# Function to get file timestamp so cache automatically resets on file changes
 def get_file_mtime(file_path):
     return os.path.getmtime(file_path) if os.path.exists(file_path) else 0
 
@@ -24,14 +24,45 @@ def load_data(mtime):
     df = pd.read_csv(CSV_FILE, engine="python", on_bad_lines="skip")
     df.columns = df.columns.astype(str).str.strip()
     
-    # Ensure optional columns exist safely without throwing errors
-    for col in ["Photo URL", "Annual Fees", "Description"]:
+    # Ensure optional columns exist safely
+    for col in ["Photo URL", "Logo URL", "Annual Fees", "Description"]:
         if col not in df.columns:
             df[col] = ""
             
     return df.fillna("")
 
-# Load data with automatic cache invalidation
+def get_clean_initials(name):
+    match = re.findall(r'\(([A-Z0-9\s-]+)\)', name)
+    if match:
+        return match[-1].strip()
+        
+    clean_name = re.sub(r'\([^)]*\)', '', name).strip()
+    words = [w for w in clean_name.split() if w.lower() not in ["of", "and", "&", "the"]]
+    if len(words) == 1:
+        return words[0][:3].upper()
+    return "".join([w[0].upper() for w in words[:4]])
+
+def render_school_badge(name, district, school_type):
+    initials = get_clean_initials(name)
+    
+    gradients = {
+        "Hong Kong Island": "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
+        "Kowloon": "linear-gradient(135deg, #0ba360 0%, #3cba92 100%)",
+        "New Territories": "linear-gradient(135deg, #e65c00 0%, #f9d423 100%)"
+    }
+    bg = gradients.get(district, "linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%)")
+    
+    st.markdown(
+        f"""
+        <div style="background: {bg}; padding: 35px 15px; text-align: center; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 10px;">
+            <div style="font-size: 34px; font-weight: 800; letter-spacing: 2px; margin-bottom: 5px;">{initials}</div>
+            <div style="font-size: 11px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">{school_type}</div>
+            <div style="font-size: 11px; opacity: 0.75; margin-top: 3px;">📍 {district}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 df = load_data(get_file_mtime(CSV_FILE))
 
 # Header
@@ -82,31 +113,32 @@ else:
         annual_fees = str(row.get("Annual Fees", "")).strip()
         description = str(row.get("Description", "")).strip()
         photo_url = str(row.get("Photo URL", "")).strip()
+        logo_url = str(row.get("Logo URL", "")).strip()
 
-        # Accordion Card
+        # Accordion Profile Card
         with st.expander(f"🏫 **{school_name}**  —  *{district} | {curriculum}*", expanded=False):
             col_img, col_info = st.columns([1, 2])
             
-            # Photo Section
+            # Left: Campus Photo or District Badge
             with col_img:
-                if photo_url and photo_url.startswith("http"):
+                if photo_url and photo_url.startswith("http") and "unsplash" not in photo_url:
                     st.image(photo_url, use_container_width=True)
                 else:
-                    st.markdown(
-                        """
-                        <div style="background-color: #f0f2f6; padding: 45px; text-align: center; border-radius: 8px;">
-                            <span style="font-size: 50px;">🏫</span>
-                            <p style="color: #666; margin-top: 5px; font-size: 13px;">Campus View</p>
-                        </div>
-                        """, 
-                        unsafe_allow_html=True
-                    )
+                    render_school_badge(school_name, district, school_type)
 
-            # Facts & Descriptions
+            # Right: School Name, Logo Header & Facts
             with col_info:
-                st.subheader(school_name)
+                # Display Logo next to School Header if provided
+                if logo_url and logo_url.startswith("http"):
+                    h_logo, h_title = st.columns([1, 5])
+                    with h_logo:
+                        st.image(logo_url, width=65)
+                    with h_title:
+                        st.subheader(school_name)
+                else:
+                    st.subheader(school_name)
                 
-                # Neutral 3rd-person description
+                # Neutral Description
                 if description:
                     st.markdown(f"*{description}*")
                     st.write("")
@@ -119,8 +151,8 @@ else:
                     st.write(f"🏛️ **School Type:** {school_type}")
                     st.write(f"🪜 **Grade Level:** {level}")
                 
-                # Annual Fees
-                if annual_fees:
+                # Tuition Fees
+                if annual_fees and annual_fees != "Contact school for details":
                     st.success(f"💰 **Annual Tuition Fees:** {annual_fees}")
                 else:
                     st.info("💰 **Annual Tuition Fees:** Contact school for current structure")
