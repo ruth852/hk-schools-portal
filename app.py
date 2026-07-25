@@ -18,13 +18,19 @@ def load_data():
         
     df = pd.read_csv(csv_file, engine="python", on_bad_lines="skip")
     df.columns = df.columns.astype(str).str.strip()
+    
+    # Ensure optional columns exist without throwing errors
+    for col in ["Photo URL", "Annual Fees"]:
+        if col not in df.columns:
+            df[col] = ""
+            
     return df.fillna("")
 
 df = load_data()
 
 # Header
 st.title("🏫 Hong Kong Schools Directory")
-st.markdown("Click on any school row below to expand and view full details, location, and search links.")
+st.markdown("Explore schools, view tuition fees, and send direct WhatsApp enquiries.")
 
 # Sidebar Filters
 st.sidebar.header("🔍 Filter Options")
@@ -57,7 +63,7 @@ col3.metric("Districts", len([d for d in df["District"].unique() if d]))
 
 st.divider()
 
-# Interactive Clickable List
+# Clickable School List
 if filtered_df.empty:
     st.info("No schools match your search criteria. Try adjusting your filters.")
 else:
@@ -67,26 +73,29 @@ else:
         curriculum = row["Curriculum"]
         school_type = row["Type"]
         level = row["🪜 Level"]
+        annual_fees = str(row.get("Annual Fees", "")).strip()
         photo_url = str(row.get("Photo URL", "")).strip()
 
-        # Each school is a clickable drawer
+        # Expandable Card
         with st.expander(f"🏫 **{school_name}**  —  *{district} | {curriculum}*", expanded=False):
             col_img, col_info = st.columns([1, 2])
             
+            # Photo Section
             with col_img:
                 if photo_url and photo_url.startswith("http"):
                     st.image(photo_url, use_container_width=True)
                 else:
                     st.markdown(
                         """
-                        <div style="background-color: #f0f2f6; padding: 35px; text-align: center; border-radius: 8px;">
+                        <div style="background-color: #f0f2f6; padding: 40px; text-align: center; border-radius: 8px;">
                             <span style="font-size: 50px;">🏫</span>
-                            <p style="color: #666; margin-top: 5px; font-size: 13px;">Campus View</p>
+                            <p style="color: #666; margin-top: 5px; font-size: 13px;">No Photo Available</p>
                         </div>
                         """, 
                         unsafe_allow_html=True
                     )
 
+            # Details Section
             with col_info:
                 st.subheader(school_name)
                 
@@ -98,13 +107,24 @@ else:
                     st.write(f"🏛️ **School Type:** {school_type}")
                     st.write(f"🪜 **Grade Level:** {level}")
                 
+                # Native Tuition Fees Display
+                if annual_fees:
+                    st.success(f"💰 **Annual Tuition Fees:** {annual_fees}")
+                else:
+                    st.info("💰 **Annual Tuition Fees:** Contact school for current structure")
+                
                 st.divider()
                 
-                # Dynamic Links for Maps & Search
+                # Links & Action Buttons
                 query_str = urllib.parse.quote(f"{school_name} Hong Kong")
                 maps_url = f"https://www.google.com/maps/search/?api=1&query={query_str}"
-                search_url = f"https://www.google.com/search?q={query_str}+admissions+fees"
+                
+                # WhatsApp Direct Link (+852 9660 1584)
+                msg = urllib.parse.quote(f"Hi! I would like to enquire about {school_name}.")
+                whatsapp_url = f"https://wa.me/85296601584?text={msg}"
                 
                 b1, b2 = st.columns(2)
-                b1.markdown(f"👉 [📍 **View on Google Maps**]({maps_url})")
-                b2.markdown(f"👉 [🔍 **Search Admissions & Fees**]({search_url})")
+                with b1:
+                    st.link_button("💬 Enquire via WhatsApp", whatsapp_url, use_container_width=True)
+                with b2:
+                    st.link_button("📍 View Location on Google Maps", maps_url, use_container_width=True)
