@@ -4,170 +4,36 @@ import urllib.parse
 import pandas as pd
 import streamlit as st
 
+# ==========================================
+# 1. PAGE TITLE & BROWSER FAVICON
+# ==========================================
 st.set_page_config(
-    page_title="Hong Kong Schools Directory",
-    page_icon="🏫",
+    page_title="Hong Kong Schools Directory | Your Brand",
+    page_icon="🎓", # Can be an emoji or a direct URL to a tiny .ico / .png file
     layout="wide"
 )
 
-CSV_FILE = "hongkong_schools.csv"
+# ==========================================
+# 2. MAIN HEADER LOGO
+# ==========================================
+# Replace this URL with the direct link to your logo on GitHub
+BRAND_LOGO_URL = "https://raw.githubusercontent.com/YOUR_USERNAME/hk-schools-portal/main/my_logo.png"
 
-def get_file_mtime(file_path):
-    return os.path.getmtime(file_path) if os.path.exists(file_path) else 0
+col_logo, col_title = st.columns([1, 4])
+with col_logo:
+    # Use use_container_width=True so it scales nicely
+    # If you don't have a logo yet, you can comment out the next line
+    st.image("https://via.placeholder.com/400x150.png?text=YOUR+LOGO+HERE", use_container_width=True) 
 
-@st.cache_data
-def load_data(mtime):
-    if not os.path.exists(CSV_FILE):
-        st.error(f"❌ File `{CSV_FILE}` not found.")
-        st.stop()
-        
-    df = pd.read_csv(CSV_FILE, engine="python", on_bad_lines="skip")
-    df.columns = df.columns.astype(str).str.strip()
-    
-    # Ensure optional columns exist safely
-    for col in ["Photo URL", "Logo URL", "Annual Fees", "Description"]:
-        if col not in df.columns:
-            df[col] = ""
-            
-    return df.fillna("")
+with col_title:
+    st.title("Hong Kong Schools Directory")
+    st.markdown("Explore verified school profiles, curriculum streams, and fee structures.")
 
-def get_clean_initials(name):
-    match = re.findall(r'\(([A-Z0-9\s-]+)\)', name)
-    if match:
-        return match[-1].strip()
-        
-    clean_name = re.sub(r'\([^)]*\)', '', name).strip()
-    words = [w for w in clean_name.split() if w.lower() not in ["of", "and", "&", "the"]]
-    if len(words) == 1:
-        return words[0][:3].upper()
-    return "".join([w[0].upper() for w in words[:4]])
-
-def render_school_badge(name, district, school_type):
-    initials = get_clean_initials(name)
-    
-    gradients = {
-        "Hong Kong Island": "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
-        "Kowloon": "linear-gradient(135deg, #0ba360 0%, #3cba92 100%)",
-        "New Territories": "linear-gradient(135deg, #e65c00 0%, #f9d423 100%)"
-    }
-    bg = gradients.get(district, "linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%)")
-    
-    st.markdown(
-        f"""
-        <div style="background: {bg}; padding: 35px 15px; text-align: center; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 10px;">
-            <div style="font-size: 34px; font-weight: 800; letter-spacing: 2px; margin-bottom: 5px;">{initials}</div>
-            <div style="font-size: 11px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">{school_type}</div>
-            <div style="font-size: 11px; opacity: 0.75; margin-top: 3px;">📍 {district}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-df = load_data(get_file_mtime(CSV_FILE))
-
-# Header
-st.title("🏫 Hong Kong Schools Directory")
-st.markdown("Explore verified school profiles, curriculum streams, and fee structures.")
-
-# Sidebar Filters
-st.sidebar.header("🔍 Filter Options")
-
-all_districts = ["All"] + sorted([d for d in df["District"].unique() if d])
-selected_district = st.sidebar.selectbox("Select District:", all_districts)
-
-all_curriculums = ["All"] + sorted([c for c in df["Curriculum"].unique() if c])
-selected_curriculum = st.sidebar.selectbox("Select Curriculum:", all_curriculums)
-
-search_query = st.sidebar.text_input("Search School Name:", "")
-
-# Filter Logic
-filtered_df = df.copy()
-
-if selected_district != "All":
-    filtered_df = filtered_df[filtered_df["District"] == selected_district]
-
-if selected_curriculum != "All":
-    filtered_df = filtered_df[filtered_df["Curriculum"] == selected_curriculum]
-
-if search_query:
-    filtered_df = filtered_df[filtered_df["Name of School"].str.contains(search_query, case=False, na=False)]
-
-# Summary Metrics
-col1, col2, col3 = st.columns(3)
-col1.metric("Total Schools", len(df))
-col2.metric("Matching Search", len(filtered_df))
-col3.metric("Districts Covered", len([d for d in df["District"].unique() if d]))
-
-st.divider()
-
-# Clickable School Profiles
-if filtered_df.empty:
-    st.info("No schools match your search criteria. Try adjusting your filters.")
-else:
-    for _, row in filtered_df.iterrows():
-        school_name = row["Name of School"]
-        district = row["District"]
-        curriculum = row["Curriculum"]
-        school_type = row["Type"]
-        level = row["🪜 Level"]
-        annual_fees = str(row.get("Annual Fees", "")).strip()
-        description = str(row.get("Description", "")).strip()
-        photo_url = str(row.get("Photo URL", "")).strip()
-        logo_url = str(row.get("Logo URL", "")).strip()
-
-        # Accordion Profile Card
-        with st.expander(f"🏫 **{school_name}**  —  *{district} | {curriculum}*", expanded=False):
-            col_img, col_info = st.columns([1, 2])
-            
-            # Left: Campus Photo or District Badge
-            with col_img:
-                if photo_url and photo_url.startswith("http") and "unsplash" not in photo_url:
-                    st.image(photo_url, use_container_width=True)
-                else:
-                    render_school_badge(school_name, district, school_type)
-
-            # Right: School Name, Logo Header & Facts
-            with col_info:
-                # Display Logo next to School Header if provided
-                if logo_url and logo_url.startswith("http"):
-                    h_logo, h_title = st.columns([1, 5])
-                    with h_logo:
-                        st.image(logo_url, width=65)
-                    with h_title:
-                        st.subheader(school_name)
-                else:
-                    st.subheader(school_name)
-                
-                # Neutral Description
-                if description:
-                    st.markdown(f"*{description}*")
-                    st.write("")
-                
-                d1, d2 = st.columns(2)
-                with d1:
-                    st.write(f"📍 **District:** {district}")
-                    st.write(f"📚 **Curriculum:** {curriculum}")
-                with d2:
-                    st.write(f"🏛️ **School Type:** {school_type}")
-                    st.write(f"🪜 **Grade Level:** {level}")
-                
-                # Tuition Fees
-                if annual_fees and annual_fees != "Contact school for details":
-                    st.success(f"💰 **Annual Tuition Fees:** {annual_fees}")
-                else:
-                    st.info("💰 **Annual Tuition Fees:** Contact school for current structure")
-                
-                st.divider()
-                
-                # Action Buttons
-                query_str = urllib.parse.quote(f"{school_name} Hong Kong")
-                maps_url = f"https://www.google.com/maps/search/?api=1&query={query_str}"
-                
-                msg = urllib.parse.quote(f"Hi! I would like to enquire about {school_name}.")
-                whatsapp_url = f"https://wa.me/85296601584?text={msg}"
-                
-                b1, b2 = st.columns(2)
-                with b1:
-                    st.link_button("💬 Enquire via WhatsApp", whatsapp_url, use_container_width=True)
-                with b2:
-                    st.link_button("📍 View Location on Google Maps", maps_url, use_container_width=True)
+# ==========================================
+# 3. SIDEBAR BRANDING
+# ==========================================
+with st.sidebar:
+    st.image("https://via.placeholder.com/300x100.png?text=YOUR+LOGO", use_container_width=True)
+    st.markdown("---")
+    st.header("🔍 Filter Options")
+    # ... (the rest of your sidebar filter code goes here)
