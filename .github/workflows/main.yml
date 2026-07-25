@@ -5,6 +5,10 @@ on:
     - cron: '0 8 * * 1'   # Runs automatically every Monday at 8:00 AM UTC
   workflow_dispatch:        # Enables the manual "Run workflow" button in GitHub
 
+# Explicitly grant write access to commit files back to your repo
+permissions:
+  contents: write
+
 jobs:
   scrape-sanitize-and-update:
     runs-on: ubuntu-latest
