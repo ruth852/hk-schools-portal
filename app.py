@@ -621,12 +621,18 @@ def load_data(mtime):
     required = ["Name of School", "Curriculum", "District", "Type",
                 "🪜 Level", "Tuition Fees (HK$)", "Fee Year", "Capital Levy (HK$)",
                 "Debenture (HK$)", "Fee Notes", "Description", "Photo URL", "Logo URL",
-                "Research Status"]
+                "Research Status", "Status",
+                "Head", "Year Established", "Language(s) of Instruction",
+                "Student Numbers", "Age Range"]
     if "Annual Fees" in df.columns and "Tuition Fees (HK$)" not in df.columns:
         df.rename(columns={"Annual Fees": "Tuition Fees (HK$)"}, inplace=True)
     for col in required:
         if col not in df.columns:
             df[col] = ""
+    # Filter: only show published rows (blank Status also treated as published)
+    df["Status"] = df["Status"].astype(str).str.strip().str.lower()
+    df = df[df["Status"].isin(["published", "nan", ""])]
+    df = df.reset_index(drop=True)
     return df
 
 
@@ -768,8 +774,16 @@ def show_profile(row: dict):
     desc       = str(row.get("Description", "")).strip()
     photo_url  = str(row.get("Photo URL", "")).strip()
     logo_url   = str(row.get("Logo URL", "")).strip()
+    head       = str(row.get("Head", "")).strip()
+    year_est   = str(row.get("Year Established", "")).strip()
+    languages  = str(row.get("Language(s) of Instruction", "")).strip()
+    students   = str(row.get("Student Numbers", "")).strip()
+    age_range  = str(row.get("Age Range", "")).strip()
     initials   = get_initials(name)
     grad       = district_gradient(district)
+
+    def _nv(v):  # returns True if value is non-empty and not a pandas NaN string
+        return bool(v) and v not in ("nan", "N/A", "None", "none")
 
     # ── Hero image ──
     if photo_url.startswith("http"):
@@ -814,26 +828,26 @@ def show_profile(row: dict):
         st.markdown(f'<p class="ts-modal-desc">{desc}</p>', unsafe_allow_html=True)
 
     # ── Detail grid ──
-    st.markdown(f"""
-    <div class="ts-modal-grid">
-      <div class="ts-modal-field">
-        <div class="field-label">District</div>
-        <div class="field-value">📍 {district}</div>
-      </div>
-      <div class="ts-modal-field">
-        <div class="field-label">Curriculum</div>
-        <div class="field-value">📚 {curriculum}</div>
-      </div>
-      <div class="ts-modal-field">
-        <div class="field-label">School Type</div>
-        <div class="field-value">{stype}</div>
-      </div>
-      <div class="ts-modal-field">
-        <div class="field-label">Levels</div>
-        <div class="field-value">🪜 {level}</div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+    def _field(label, value):
+        if value and value not in ("nan", "N/A", "None", "none", ""):
+            return ('<div class="ts-modal-field">'
+                    '<div class="field-label">' + label + '</div>'
+                    '<div class="field-value">' + value + '</div>'
+                    '</div>')
+        return ""
+
+    grid_html = ('<div class="ts-modal-grid">'
+        + _field("District",    f"\U0001f4cd {district}" if district else "")
+        + _field("Curriculum",  f"\U0001f4da {curriculum}" if curriculum else "")
+        + _field("School Type", stype)
+        + _field("Levels",      f"\U0001fa9c {level}" if level else "")
+        + _field("Head",        f"\U0001f464 {head}" if head else "")
+        + _field("Est.",        year_est)
+        + _field("Language(s)", languages)
+        + _field("Students",    f"\U0001f465 {students}" if students else "")
+        + _field("Age Range",   age_range)
+        + '</div>')
+    st.markdown(grid_html, unsafe_allow_html=True)
 
     # ── Fee box — built with plain concatenation to avoid f-string brace issues ──
     def _fee_row(label, value):
