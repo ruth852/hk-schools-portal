@@ -745,13 +745,11 @@ with st.sidebar:
 
     # ── Age Calculator button ──
     st.markdown("---")
-    CAP_IMG = "data:image/png;base64,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"
     st.markdown(
         f'<div style="background:{CORAL};border-radius:12px;padding:14px 16px;'
-        f'text-align:center;cursor:pointer;margin-bottom:4px;">'
-        f'<img src="{CAP_IMG}" style="height:36px;width:auto;margin-bottom:6px;display:block;margin-left:auto;margin-right:auto;">'
-        f'<div style="color:white;font-size:13px;font-weight:700;line-height:1.3">School Year Calculator</div>'
-        f'<div style="color:rgba(255,255,255,0.8);font-size:11px;margin-top:2px">Find your child\'s year group</div>'
+        f'text-align:center;margin-bottom:4px;">'
+        f'<div style="color:white;font-size:14px;font-weight:700;line-height:1.4">🎓 School Year Calculator</div>'
+        f'<div style="color:rgba(255,255,255,0.85);font-size:11px;margin-top:3px">Find your child\'s year group</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -977,6 +975,10 @@ def show_profile(row: dict):
 # ── Age / School Year Calculator dialog ──────────────────────────────────
 @st.dialog("🎓 School Year Calculator", width="large")
 def show_calculator():
+    st.image(
+        "https://raw.githubusercontent.com/ruth852/hk-schools-portal/main/PNG%20Logo.png",
+        width=160,
+    )
     st.markdown(
         "<p style='font-size:13px;color:#6B7280;margin-bottom:16px'>"
         "Enter your child's date of birth to see which year group they'll be in "
