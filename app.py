@@ -303,7 +303,7 @@ st.markdown(f"""
     background: {CORAL};
 }}
 .ts-modal-name {{
-    font-size: 19px;
+    font-size: 26px;
     font-weight: 800;
     color: {BLACK};
     line-height: 1.2;
