@@ -309,6 +309,19 @@ st.markdown(f"""
     display: block;
     background: {GREY_BG};
 }}
+.ts-card-hero-wrap {{
+    width: 100%;
+    height: 160px;
+    overflow: hidden;
+    line-height: 0;
+    font-size: 0;
+}}
+.ts-card-hero-wrap img {{
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    display: block;
+}}
 .ts-card-photo-placeholder {{
     width: 100%;
     height: 160px;
@@ -404,9 +417,30 @@ st.markdown(f"""
 }}
 
 /* ── Dialog / modal profile styles ── */
+.ts-modal-hero-wrap {{
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    line-height: 0;
+    font-size: 0;
+}}
+.ts-modal-hero-wrap img {{
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    display: block;
+}}
+/* Force Streamlit markdown wrappers inside dialog to be full-width */
+[data-testid="stDialog"] [data-testid="stMarkdownContainer"] {{
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+}}
 .ts-modal-hero {{
     width: 100%;
-    height: 200px;
+    height: 220px;
     object-fit: cover;
     border-radius: 10px;
     display: block;
@@ -824,7 +858,7 @@ def show_profile(row: dict):
     # ── Hero image ──
     if photo_url.startswith("http"):
         st.markdown(
-            f'<img src="{photo_url}" class="ts-modal-hero" alt="{name}">',
+            f'<div class="ts-modal-hero-wrap"><img src="{photo_url}" alt="{name}"></div>',
             unsafe_allow_html=True,
         )
     else:
@@ -1024,7 +1058,9 @@ else:
                 featured   = is_featured(name)
 
                 if photo_url.startswith("http"):
-                    photo_html = '<img src="' + photo_url + '" class="ts-card-photo" alt="' + name + '">'
+                    photo_html = ('<div class="ts-card-hero-wrap">'
+                                  '<img src="' + photo_url + '" alt="' + name + '">'
+                                  '</div>')
                 else:
                     photo_html = '<div class="ts-card-photo-placeholder" style="background:' + grad + '">' + initials + '</div>'
 
