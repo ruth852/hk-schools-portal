@@ -687,7 +687,7 @@ def show_profile(row: dict):
     photo_url  = str(row.get("Photo URL", "")).strip()
     logo_url   = str(row.get("Logo URL", "")).strip()
     head       = str(row.get("Head", "")).strip()
-    year_est   = str(row.get("Year Established", "")).strip()
+    year_est   = str(row.get("Year Established", "")).strip().removesuffix(".0")
     languages  = str(row.get("Language(s) of Instruction", "")).strip()
     students   = str(row.get("Student Numbers", "")).strip()
     age_range  = str(row.get("Age Range", "")).strip()
