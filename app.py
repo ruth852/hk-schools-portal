@@ -665,6 +665,8 @@ def decode_shortlist(encoded: str) -> list[str]:
 # ── Session state ──────────────────────────────────────────────────────────
 if "selected_school" not in st.session_state:
     st.session_state.selected_school = None
+if "show_calc" not in st.session_state:
+    st.session_state.show_calc = False
 if "shortlist" not in st.session_state:
     # Initialise from URL param if present
     params = st.query_params
@@ -740,6 +742,13 @@ with st.sidebar:
             "</div>",
             unsafe_allow_html=True,
         )
+
+    # ── Age Calculator button ──
+    st.markdown("---")
+    if st.button("🎓 School Year Calculator", use_container_width=True,
+                 help="Find out which year group your child will be in"):
+        st.session_state.show_calc = True
+        st.rerun()
 
     # ── WhatsApp CTA ──
     st.markdown("---")
@@ -956,10 +965,101 @@ def show_profile(row: dict):
     )
 
 
+# ── Age / School Year Calculator dialog ──────────────────────────────────
+@st.dialog("🎓 School Year Calculator", width="large")
+def show_calculator():
+    st.markdown(
+        "<p style='font-size:13px;color:#6B7280;margin-bottom:16px'>"
+        "Enter your child's date of birth to see which year group they'll be in "
+        "for the next four academic years. Based on the Hong Kong "
+        "<strong>August 31 cut-off</strong> date.</p>",
+        unsafe_allow_html=True,
+    )
+
+    dob = st.date_input(
+        "Child's Date of Birth",
+        value=None,
+        min_value=None,
+        max_value=None,
+        format="DD/MM/YYYY",
+        help="Enter as DD/MM/YYYY",
+    )
+
+    if dob is None:
+        st.info("Please select a date of birth above to see results.")
+        return
+
+    import datetime
+
+    ACADEMIC_YEARS = ["2026/27", "2027/28", "2028/29", "2029/30"]
+
+    def calc_year_group(dob, academic_year):
+        start_year = int(academic_year.split('/')[0])
+        cutoff = datetime.date(start_year, 8, 31)
+        diff_y = cutoff.year - dob.year
+        diff_m = cutoff.month - dob.month
+        if diff_m < 0:
+            diff_y -= 1
+            diff_m += 12
+        total_m = diff_y * 12 + diff_m
+        age_str = f"{diff_y}y {diff_m}m"
+
+        if total_m < 24:
+            return age_str, "Too Young", None
+        elif total_m < 32:
+            return age_str, "Pre-Nursery", None
+        elif total_m < 44:
+            return age_str, "Nursery (K1)", None
+        elif total_m < 60:
+            return age_str, "Reception (K2)", None
+        else:
+            # Cohort-based: Year 1 starts at 5y0m (60m) on Aug 31
+            yr_level = (total_m - 60) // 12 + 1
+            grade = f"Grade {yr_level - 1}" if yr_level >= 2 else None
+            return age_str, f"Year {yr_level}", grade
+
+    cols = st.columns(len(ACADEMIC_YEARS))
+    for i, ay in enumerate(ACADEMIC_YEARS):
+        age_str, yr_text, grade_text = calc_year_group(dob, ay)
+        with cols[i]:
+            grade_html = (
+                f"<div style='font-size:11px;font-weight:600;color:#6B7280;margin-top:4px'>{grade_text}</div>"
+                if grade_text else ""
+            )
+            st.markdown(
+                f"<div style='background:#F7F8FA;border:1px solid #E4E7EC;border-radius:12px;"
+                f"padding:18px 12px;text-align:center;'>"
+                f"<div style='font-weight:800;font-size:13px;color:#111;border-bottom:2px solid #EB5946;"
+                f"padding-bottom:8px;margin-bottom:12px'>AY {ay}</div>"
+                f"<div style='font-size:10px;font-weight:700;text-transform:uppercase;"
+                f"letter-spacing:0.06em;color:#6B7280;margin-bottom:3px'>Age on Aug 31</div>"
+                f"<div style='font-size:22px;font-weight:900;color:#111;margin-bottom:14px'>{age_str}</div>"
+                f"<div style='background:#EB5946;color:white;padding:12px 8px;border-radius:8px;"
+                f"font-weight:900;font-size:14px;text-transform:uppercase'>{yr_text}</div>"
+                + grade_html +
+                "</div>",
+                unsafe_allow_html=True,
+            )
+
+    st.markdown(
+        "<div style='margin-top:20px;font-size:11px;color:#9CA3AF;border-top:1px solid #E4E7EC;"
+        "padding-top:14px;line-height:1.6'>"
+        "<strong>Cut-off:</strong> August 31 · "
+        "<strong>Thresholds:</strong> Nursery (K1) = 2y8m+, Reception (K2) = 3y8m+, "
+        "Year 1 = 5y0m+ · Year groups follow the UK/international school system."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
 # Open the dialog if a school has been selected
 if st.session_state.selected_school is not None:
     show_profile(st.session_state.selected_school)
     st.session_state.selected_school = None
+
+if st.session_state.show_calc:
+    show_calculator()
+    st.session_state.show_calc = False
 
 
 # ── Featured schools ──────────────────────────────────────────────────────
