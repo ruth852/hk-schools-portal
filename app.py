@@ -1,21 +1,8 @@
 import os
-import io
 import re
 import urllib.parse
-import requests as _requests
 import pandas as pd
 import streamlit as st
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors as rl_colors
-from reportlab.lib.units import mm
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph as RLParagraph, Spacer as RLSpacer,
-    Table as RLTable, TableStyle as RLTableStyle,
-    HRFlowable as RLHRFlowable, KeepTogether as RLKeepTogether,
-    Image as RLImage,
-)
-from reportlab.lib.styles import ParagraphStyle as RLParagraphStyle
-from reportlab.lib.enums import TA_CENTER as RL_TA_CENTER
 
 st.set_page_config(
     page_title="topschools | Hong Kong Schools Directory",
@@ -33,192 +20,11 @@ GREY_BG = "#F7F8FA"
 GREY_BD = "#E4E7EC"
 GREY_TXT= "#6B7280"
 
-# ── PDF generation ─────────────────────────────────────────────────────────
-# reportlab colour objects (separate namespace from the CSS hex strings above)
-_PDF_CORAL    = rl_colors.HexColor("#EB5946")
-_PDF_TEAL     = rl_colors.HexColor("#00B7CB")
-_PDF_BLACK    = rl_colors.HexColor("#111111")
-_PDF_GREY_TXT = rl_colors.HexColor("#6B7280")
-_PDF_GREY_BG  = rl_colors.HexColor("#F7F8FA")
-_PDF_GREY_BD  = rl_colors.HexColor("#E4E7EC")
-_PDF_WHITE    = rl_colors.white
-_PDF_FEE_BG   = rl_colors.HexColor("#FEF2F0")
 
 
-def _pdf_fetch_image(url: str, timeout: int = 6):
-    """Download an image URL and return a BytesIO, or None on failure."""
-    try:
-        r = _requests.get(url, timeout=timeout, headers={"User-Agent": "Mozilla/5.0"})
-        if r.status_code == 200 and r.content:
-            buf = io.BytesIO(r.content)
-            buf.seek(0)
-            return buf
-    except Exception:
-        pass
-    return None
 
 
-def _pdf_make_styles():
-    return {
-        "school_name": RLParagraphStyle("school_name", fontName="Helvetica-Bold",
-            fontSize=18, textColor=_PDF_BLACK, leading=22, spaceAfter=4),
-        "body": RLParagraphStyle("body", fontName="Helvetica",
-            fontSize=10, textColor=_PDF_BLACK, leading=15, spaceAfter=6),
-        "field_label": RLParagraphStyle("field_label", fontName="Helvetica-Bold",
-            fontSize=8, textColor=_PDF_GREY_TXT, leading=10),
-        "field_value": RLParagraphStyle("field_value", fontName="Helvetica-Bold",
-            fontSize=11, textColor=_PDF_BLACK, leading=14),
-        "fee_label": RLParagraphStyle("fee_label", fontName="Helvetica-Bold",
-            fontSize=8, textColor=_PDF_CORAL, leading=10),
-        "fee_value": RLParagraphStyle("fee_value", fontName="Helvetica-Bold",
-            fontSize=12, textColor=_PDF_BLACK, leading=15),
-        "fee_notes": RLParagraphStyle("fee_notes", fontName="Helvetica-Oblique",
-            fontSize=8, textColor=_PDF_GREY_TXT, leading=11, spaceBefore=4),
-        "tag": RLParagraphStyle("tag", fontName="Helvetica-Bold",
-            fontSize=8, textColor=_PDF_GREY_TXT, leading=10),
-        "footer": RLParagraphStyle("footer", fontName="Helvetica",
-            fontSize=8, textColor=_PDF_GREY_TXT, alignment=RL_TA_CENTER, leading=11),
-    }
 
-
-def generate_school_pdf(school: dict) -> bytes:
-    """Generate a branded one-page A4 PDF for a school profile. Returns bytes."""
-    buf = io.BytesIO()
-    PAGE_W, _ = A4
-    MARGIN = 18 * mm
-    cw = PAGE_W - 2 * MARGIN  # content width
-
-    doc = SimpleDocTemplate(buf, pagesize=A4,
-        leftMargin=MARGIN, rightMargin=MARGIN,
-        topMargin=14 * mm, bottomMargin=14 * mm,
-        title=school.get("Name of School", "School Profile"))
-
-    S = _pdf_make_styles()
-    story = []
-
-    # Header: topschools logo
-    TS_LOGO = "https://raw.githubusercontent.com/ruth852/hk-schools-portal/main/PNG%20Logo.png"
-    ts_buf = _pdf_fetch_image(TS_LOGO)
-    hdr_cell = RLImage(ts_buf, width=90, height=28) if ts_buf else RLParagraph("<b>topschools</b>", S["school_name"])
-    hdr = RLTable([[hdr_cell]], colWidths=[cw])
-    hdr.setStyle(RLTableStyle([("BACKGROUND", (0,0), (-1,-1), _PDF_WHITE),
-        ("TOPPADDING", (0,0), (-1,-1), 4), ("BOTTOMPADDING", (0,0), (-1,-1), 8)]))
-    story += [hdr, RLHRFlowable(width="100%", thickness=2, color=_PDF_CORAL, spaceAfter=10)]
-
-    # Hero image
-    photo_url = str(school.get("Photo URL", "")).strip()
-    if photo_url.startswith("http"):
-        hero_buf = _pdf_fetch_image(photo_url)
-        if hero_buf:
-            hero_h = min(55 * mm, cw * 9 / 16)
-            story += [RLImage(hero_buf, width=cw, height=hero_h), RLSpacer(1, 8)]
-
-    # Logo + name row
-    logo_url = str(school.get("Logo URL", "")).strip()
-    name     = str(school.get("Name of School", "")).strip()
-    logo_buf = _pdf_fetch_image(logo_url) if logo_url.startswith("http") else None
-    name_cell = RLParagraph(name, S["school_name"])
-    if logo_buf:
-        name_row = RLTable([[RLImage(logo_buf, width=36, height=36), name_cell]],
-            colWidths=[44, cw - 44])
-        name_row.setStyle(RLTableStyle([("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-            ("LEFTPADDING", (1,0), (1,0), 8), ("TOPPADDING", (0,0), (-1,-1), 0),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 0), ("RIGHTPADDING", (0,0), (-1,-1), 0)]))
-    else:
-        name_row = RLTable([[name_cell]], colWidths=[cw])
-        name_row.setStyle(RLTableStyle([("LEFTPADDING", (0,0), (-1,-1), 0)]))
-    story += [name_row, RLSpacer(1, 6)]
-
-    # Tags
-    district   = str(school.get("District", "")).strip()
-    curriculum = str(school.get("Curriculum", "")).strip()
-    stype      = str(school.get("Type", "")).strip()
-    level      = str(school.get("\U0001fa9c Level", "")).strip()
-    tags = ([f"\U0001f4cd {district}"] if district else []) + \
-           ([f"\U0001f4da {curriculum}"] if curriculum else []) + \
-           ([f"\U0001fa9c {level}"] if level else []) + \
-           ([stype] if stype else [])
-    if tags:
-        col_w = cw / len(tags)
-        tag_tbl = RLTable([[RLParagraph(t, S["tag"]) for t in tags]], colWidths=[col_w]*len(tags))
-        tag_tbl.setStyle(RLTableStyle([("BACKGROUND", (0,0), (-1,-1), _PDF_GREY_BG),
-            ("TOPPADDING", (0,0), (-1,-1), 5), ("BOTTOMPADDING", (0,0), (-1,-1), 5),
-            ("LEFTPADDING", (0,0), (-1,-1), 8), ("RIGHTPADDING", (0,0), (-1,-1), 8),
-            ("VALIGN", (0,0), (-1,-1), "MIDDLE")]))
-        story += [tag_tbl, RLSpacer(1, 8)]
-
-    # Description
-    desc = str(school.get("Description", "")).strip()
-    if desc and desc not in ("nan", ""):
-        story += [RLHRFlowable(width="100%", thickness=0.5, color=_PDF_GREY_BD, spaceAfter=6),
-                  RLParagraph(desc, S["body"])]
-
-    # Detail grid (flat 4-col)
-    lw = 26 * mm
-    vw = (cw - 2 * lw) / 2
-    grid = [
-        [RLParagraph("DISTRICT", S["field_label"]),
-         RLParagraph(f"\U0001f4cd {district}" if district else "\u2014", S["field_value"]),
-         RLParagraph("CURRICULUM", S["field_label"]),
-         RLParagraph(f"\U0001f4da {curriculum}" if curriculum else "\u2014", S["field_value"])],
-        [RLParagraph("SCHOOL TYPE", S["field_label"]),
-         RLParagraph(stype if stype else "\u2014", S["field_value"]),
-         RLParagraph("LEVELS", S["field_label"]),
-         RLParagraph(f"\U0001fa9c {level}" if level else "\u2014", S["field_value"])],
-    ]
-    grid_tbl = RLTable(grid, colWidths=[lw, vw, lw, vw])
-    grid_tbl.setStyle(RLTableStyle([("BACKGROUND", (0,0), (-1,-1), _PDF_GREY_BG),
-        ("TOPPADDING", (0,0), (-1,-1), 7), ("BOTTOMPADDING", (0,0), (-1,-1), 7),
-        ("LEFTPADDING", (0,0), (-1,-1), 8), ("RIGHTPADDING", (0,0), (-1,-1), 6),
-        ("LINEBELOW", (0,0), (-1,-2), 0.5, _PDF_GREY_BD),
-        ("LINEAFTER", (1,0), (1,-1), 0.5, _PDF_GREY_BD),
-        ("VALIGN", (0,0), (-1,-1), "TOP")]))
-    story += [RLSpacer(1, 6), grid_tbl, RLSpacer(1, 8)]
-
-    # Fee box
-    tuition   = str(school.get("Tuition Fees (HK$)", "")).strip()
-    fee_year  = str(school.get("Fee Year", "")).strip()
-    capital   = str(school.get("Capital Levy (HK$)", "")).strip()
-    debenture = str(school.get("Debenture (HK$)", "")).strip()
-    fee_notes = str(school.get("Fee Notes", "")).strip()
-
-    def _v(x): return x and x not in ("nan", "N/A", "None", "none", "")
-    fy_lbl = f" ({fee_year})" if _v(fee_year) else ""
-    t_disp = tuition if _v(tuition) else "Contact school for current fee structure"
-
-    fee_rows = [
-        [RLParagraph(f"TUITION FEES{fy_lbl}", S["fee_label"]),
-         RLParagraph("CAPITAL LEVY" if _v(capital) else "", S["fee_label"])],
-        [RLParagraph(t_disp, S["fee_value"]),
-         RLParagraph(capital if _v(capital) else "\u2014", S["fee_value"])],
-    ]
-    if _v(debenture):
-        fee_rows += [
-            [RLParagraph("DEBENTURE", S["fee_label"]), RLParagraph("", S["fee_label"])],
-            [RLParagraph(debenture, S["fee_value"]),   RLParagraph("", S["fee_value"])],
-        ]
-    fee_tbl = RLTable(fee_rows, colWidths=[cw/2, cw/2])
-    fee_tbl.setStyle(RLTableStyle([("BACKGROUND", (0,0), (-1,-1), _PDF_FEE_BG),
-        ("LINEBEFORE", (0,0), (0,-1), 3, _PDF_CORAL),
-        ("LINEAFTER",  (0,0), (0,-1), 0.5, _PDF_CORAL),
-        ("TOPPADDING", (0,0), (-1,-1), 5), ("BOTTOMPADDING", (0,0), (-1,-1), 5),
-        ("LEFTPADDING", (0,0), (-1,-1), 10), ("RIGHTPADDING", (0,0), (-1,-1), 10),
-        ("VALIGN", (0,0), (-1,-1), "TOP")]))
-    story.append(RLKeepTogether([fee_tbl]))
-    if _v(fee_notes) and fee_notes not in ("Not yet researched",):
-        story += [RLSpacer(1, 3), RLParagraph(fee_notes, S["fee_notes"])]
-
-    # Footer
-    story += [
-        RLSpacer(1, 12),
-        RLHRFlowable(width="100%", thickness=0.5, color=_PDF_GREY_BD, spaceAfter=6),
-        RLParagraph(
-            "Generated by <b>topschools</b> \u00b7 Hong Kong's school discovery platform \u00b7 topschools.com.hk",
-            S["footer"]),
-    ]
-
-    doc.build(story)
-    return buf.getvalue()
 
 # ── Global CSS ─────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -415,6 +221,21 @@ st.markdown(f"""
     align-items: center;
     gap: 4px;
 }}
+/* Make the Streamlit card button invisible — it sits below the card
+   and is triggered by clicking the styled CTA row via JS */
+.ts-card-btn > div > button {{
+    display: none !important;
+}}
+.ts-card-btn {{
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}}
+/* Make the entire card a click target */
+.ts-card {{
+    cursor: pointer;
+}}
 
 /* ── Dialog / modal profile styles ── */
 .ts-modal-hero-wrap {{
@@ -578,6 +399,27 @@ st.markdown(f"""
 .ts-btn:hover {{ opacity: 0.85; }}
 .ts-btn-primary  {{ background: {CORAL}; color: {WHITE} !important; }}
 .ts-btn-secondary{{ background: {TEAL};  color: {WHITE} !important; }}
+
+/* ── Card CTA button — styled to look like the coral text row ── */
+[data-testid="stVerticalBlock"] [data-testid="stButton"] > button {{
+    background: transparent !important;
+    border: none !important;
+    border-top: 1px solid {GREY_BD} !important;
+    border-radius: 0 0 14px 14px !important;
+    color: {CORAL} !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 10px 16px !important;
+    width: 100% !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    margin-top: -4px !important;
+    box-shadow: none !important;
+}}
+[data-testid="stVerticalBlock"] [data-testid="stButton"] > button:hover {{
+    background: {GREY_BG} !important;
+    color: {CORAL} !important;
+}}
 
 /* ── Sidebar labels ── */
 .ts-sidebar-label {{
@@ -975,21 +817,7 @@ def show_profile(row: dict):
         unsafe_allow_html=True,
     )
 
-    # PDF export — generate on demand with error handling
-    st.markdown('<hr style="margin:16px 0 12px;border:none;border-top:1px solid #E4E7EC">', unsafe_allow_html=True)
-    safe_name = re.sub(r'[^\w\-]+', '_', name)
-    try:
-        pdf_bytes = generate_school_pdf(row)
-        st.download_button(
-            label="📄 Download Profile PDF",
-            data=pdf_bytes,
-            file_name=f"{safe_name}_profile.pdf",
-            mime="application/pdf",
-            use_container_width=True,
-            key=f"pdf_{safe_name}",
-        )
-    except Exception as e:
-        st.warning(f"PDF generation failed: {e}")
+
 
 
 # Open the dialog if a school has been selected
@@ -1093,18 +921,18 @@ else:
                     + '</div>'
                     + '<div class="ts-card-tags">' + tags_html + '</div>'
                     + '<div class="ts-card-desc">' + short_desc + '</div>'
-                    + '<div class="ts-card-cta">View full profile →</div>'
                     + '</div>'
                     + '</div>'
                 )
 
                 with cols[col_idx]:
                     st.markdown(card_html, unsafe_allow_html=True)
+                    # Styled as the CTA row — full-width coral button that looks
+                    # like the "View full profile →" text row at the card bottom
                     if st.button(
-                        f"View {name}",
+                        "View full profile →",
                         key=f"card_{name}",
                         use_container_width=True,
-                        type="primary",
                     ):
                         st.session_state.selected_school = school_row.to_dict()
                         st.rerun()
