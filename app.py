@@ -224,25 +224,34 @@ st.markdown(f"""
     overflow: hidden;
 }}
 
-/* ── Card CTA button — styled as coral text row ── */
-[data-testid="stVerticalBlock"] [data-testid="stButton"] > button {{
+/* ── Card buttons — both card-click and heart ── */
+/* Base reset for all buttons inside card columns */
+div[data-testid="column"] > div > div > div > div[data-testid="stButton"] > button {{
     background: transparent !important;
     border: none !important;
-    border-top: 1px solid {GREY_BD} !important;
-    border-radius: 0 0 14px 14px !important;
-    color: {CORAL} !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    padding: 10px 16px !important;
-    width: 100% !important;
-    text-align: left !important;
-    cursor: pointer !important;
-    margin-top: -4px !important;
     box-shadow: none !important;
+    cursor: pointer !important;
+    width: 100% !important;
+    padding: 6px 4px !important;
 }}
-[data-testid="stVerticalBlock"] [data-testid="stButton"] > button:hover {{
-    background: {GREY_BG} !important;
+/* Card-open button (wide col): invisible */
+div[data-testid="column"]:first-child > div > div > div > div[data-testid="stButton"] > button {{
+    color: transparent !important;
+    font-size: 1px !important;
+    min-height: 32px !important;
+}}
+div[data-testid="column"]:first-child > div > div > div > div[data-testid="stButton"] > button:hover {{
+    background: rgba(235,89,70,0.05) !important;
+}}
+/* Heart button (narrow col): visible emoji */
+.ts-heart-btn {{ z-index: 10; }}
+div[data-testid="column"]:last-child > div > div > div > div[data-testid="stButton"] > button {{
     color: {CORAL} !important;
+    font-size: 18px !important;
+    min-height: 32px !important;
+}}
+div[data-testid="column"]:last-child > div > div > div > div[data-testid="stButton"] > button:hover {{
+    background: rgba(235,89,70,0.08) !important;
 }}
 
 /* ── Dialog / modal profile styles ── */
@@ -965,12 +974,6 @@ def show_profile(row: dict):
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        '<a href="' + maps_url + '" target="_blank" class="ts-btn ts-btn-secondary">'
-        '📍 Open in Maps</a>',
-        unsafe_allow_html=True,
-    )
-
 
 # ── Age / School Year Calculator dialog ──────────────────────────────────
 @st.dialog("🎓 School Year Calculator", width="large")
@@ -1187,12 +1190,14 @@ else:
                 with cols[col_idx]:
                     st.markdown(card_html, unsafe_allow_html=True)
 
-                    btn_col, heart_col = st.columns([4, 1])
-                    with btn_col:
+                    # Full-card click opens profile
+                    card_col, heart_col = st.columns([6, 1])
+                    with card_col:
                         if st.button(
-                            "View full profile →",
+                            " ",  # invisible label
                             key=f"card_{name}",
                             use_container_width=True,
+                            help=f"View {name} profile",
                         ):
                             st.session_state.selected_school = school_row.to_dict()
                             st.rerun()
