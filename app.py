@@ -1,5 +1,6 @@
 import os
 import re
+import base64
 import urllib.parse
 import pandas as pd
 import streamlit as st
@@ -19,12 +20,7 @@ BLACK   = "#111111"
 GREY_BG = "#F7F8FA"
 GREY_BD = "#E4E7EC"
 GREY_TXT= "#6B7280"
-
-
-
-
-
-
+GOLD    = "#F59E0B"
 
 # ── Global CSS ─────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -101,6 +97,7 @@ st.markdown(f"""
     cursor: pointer;
     display: flex;
     flex-direction: column;
+    position: relative;
 }}
 .ts-card:hover {{
     box-shadow: 0 6px 20px rgba(0,0,0,0.10);
@@ -108,19 +105,13 @@ st.markdown(f"""
 }}
 
 /* Card photo strip */
-.ts-card-photo {{
-    width: 100%;
-    height: 160px;
-    object-fit: cover;
-    display: block;
-    background: {GREY_BG};
-}}
 .ts-card-hero-wrap {{
     width: 100%;
     height: 160px;
     overflow: hidden;
     line-height: 0;
     font-size: 0;
+    position: relative;
 }}
 .ts-card-hero-wrap img {{
     width: 100%;
@@ -139,6 +130,28 @@ st.markdown(f"""
     color: {WHITE};
     letter-spacing: 2px;
 }}
+
+/* Heart shortlist button on card */
+.ts-heart-btn {{
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    z-index: 10;
+    border: none;
+    line-height: 1;
+    transition: transform 0.15s;
+}}
+.ts-heart-btn:hover {{ transform: scale(1.15); }}
 
 /* Card body */
 .ts-card-body {{
@@ -210,31 +223,26 @@ st.markdown(f"""
     -webkit-box-orient: vertical;
     overflow: hidden;
 }}
-.ts-card-cta {{
-    margin-top: auto;
-    padding-top: 10px;
-    border-top: 1px solid {GREY_BD};
-    font-size: 12px;
-    color: {CORAL};
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+
+/* ── Card CTA button — styled as coral text row ── */
+[data-testid="stVerticalBlock"] [data-testid="stButton"] > button {{
+    background: transparent !important;
+    border: none !important;
+    border-top: 1px solid {GREY_BD} !important;
+    border-radius: 0 0 14px 14px !important;
+    color: {CORAL} !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 10px 16px !important;
+    width: 100% !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    margin-top: -4px !important;
+    box-shadow: none !important;
 }}
-/* Make the Streamlit card button invisible — it sits below the card
-   and is triggered by clicking the styled CTA row via JS */
-.ts-card-btn > div > button {{
-    display: none !important;
-}}
-.ts-card-btn {{
-    margin: 0 !important;
-    padding: 0 !important;
-    height: 0 !important;
-    overflow: hidden !important;
-}}
-/* Make the entire card a click target */
-.ts-card {{
-    cursor: pointer;
+[data-testid="stVerticalBlock"] [data-testid="stButton"] > button:hover {{
+    background: {GREY_BG} !important;
+    color: {CORAL} !important;
 }}
 
 /* ── Dialog / modal profile styles ── */
@@ -253,19 +261,10 @@ st.markdown(f"""
     object-fit: cover;
     display: block;
 }}
-/* Force Streamlit markdown wrappers inside dialog to be full-width */
 [data-testid="stDialog"] [data-testid="stMarkdownContainer"] {{
     width: 100% !important;
     max-width: 100% !important;
     padding: 0 !important;
-}}
-.ts-modal-hero {{
-    width: 100%;
-    height: 220px;
-    object-fit: cover;
-    border-radius: 10px;
-    display: block;
-    margin-bottom: 16px;
 }}
 .ts-modal-hero-placeholder {{
     width: 100%;
@@ -352,12 +351,8 @@ st.markdown(f"""
     padding: 12px 14px;
     margin-bottom: 16px;
 }}
-.ts-fee-row {{
-    margin-top: 8px;
-}}
-.ts-fee-row:first-child {{
-    margin-top: 0;
-}}
+.ts-fee-row {{ margin-top: 8px; }}
+.ts-fee-row:first-child {{ margin-top: 0; }}
 .ts-fee-row-label {{
     font-size: 10px;
     font-weight: 700;
@@ -400,25 +395,25 @@ st.markdown(f"""
 .ts-btn-primary  {{ background: {CORAL}; color: {WHITE} !important; }}
 .ts-btn-secondary{{ background: {TEAL};  color: {WHITE} !important; }}
 
-/* ── Card CTA button — styled to look like the coral text row ── */
-[data-testid="stVerticalBlock"] [data-testid="stButton"] > button {{
-    background: transparent !important;
-    border: none !important;
-    border-top: 1px solid {GREY_BD} !important;
-    border-radius: 0 0 14px 14px !important;
-    color: {CORAL} !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    padding: 10px 16px !important;
-    width: 100% !important;
-    text-align: left !important;
-    cursor: pointer !important;
-    margin-top: -4px !important;
-    box-shadow: none !important;
+/* ── WhatsApp enquiry box in modal ── */
+.ts-enquiry-box {{
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
 }}
-[data-testid="stVerticalBlock"] [data-testid="stButton"] > button:hover {{
-    background: {GREY_BG} !important;
-    color: {CORAL} !important;
+.ts-enquiry-box .eq-title {{
+    font-size: 14px;
+    font-weight: 700;
+    color: {BLACK};
+    margin-bottom: 4px;
+}}
+.ts-enquiry-box .eq-body {{
+    font-size: 12px;
+    color: #374151;
+    line-height: 1.6;
+    margin-bottom: 10px;
 }}
 
 /* ── Sidebar labels ── */
@@ -440,13 +435,14 @@ st.markdown(f"""
 .ts-empty .icon {{ font-size: 48px; margin-bottom: 12px; }}
 .ts-empty h3 {{ font-size: 18px; color: {BLACK}; margin-bottom: 6px; }}
 
-/* ── Featured card ── */
+/* ── Featured card — more prominent ── */
 .ts-card.ts-featured {{
     border: 2px solid {CORAL};
-    box-shadow: 0 2px 12px rgba(235,89,70,0.18);
+    box-shadow: 0 4px 18px rgba(235,89,70,0.22);
 }}
 .ts-card.ts-featured:hover {{
-    box-shadow: 0 8px 28px rgba(235,89,70,0.28);
+    box-shadow: 0 10px 32px rgba(235,89,70,0.32);
+    transform: translateY(-4px);
 }}
 .ts-featured-badge {{
     display: inline-flex;
@@ -470,46 +466,131 @@ st.markdown(f"""
     letter-spacing: 0.08em;
     margin: 0 0 12px 2px;
 }}
+/* Featured section banner */
+.ts-featured-banner {{
+    background: linear-gradient(135deg, rgba(235,89,70,0.07), rgba(0,183,203,0.05));
+    border: 1px solid rgba(235,89,70,0.15);
+    border-radius: 14px;
+    padding: 16px 20px 8px;
+    margin-bottom: 20px;
+}}
+.ts-featured-banner-title {{
+    font-size: 15px;
+    font-weight: 800;
+    color: {CORAL};
+    margin-bottom: 2px;
+    letter-spacing: -0.01em;
+}}
+.ts-featured-banner-sub {{
+    font-size: 12px;
+    color: {GREY_TXT};
+    margin-bottom: 14px;
+}}
 
-/* Hide the Streamlit button label under each card */
-div[data-testid="column"] > div > div > div > div > div > button {{
-    display: none;
+/* ── Shortlist panel ── */
+.ts-shortlist-box {{
+    background: #FFF7ED;
+    border: 1px solid #FED7AA;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+}}
+.ts-shortlist-title {{
+    font-size: 12px;
+    font-weight: 700;
+    color: #92400E;
+    margin-bottom: 6px;
+}}
+.ts-shortlist-item {{
+    font-size: 11px;
+    color: #374151;
+    padding: 2px 0;
+    border-bottom: 1px solid #FED7AA;
+}}
+.ts-shortlist-item:last-child {{ border-bottom: none; }}
+
+/* ── Footer ── */
+.ts-footer {{
+    background: {BLACK};
+    border-radius: 14px;
+    padding: 32px 28px 24px;
+    margin-top: 40px;
+    color: {WHITE};
+}}
+.ts-footer-logo {{
+    margin-bottom: 12px;
+}}
+.ts-footer-tagline {{
+    font-size: 13px;
+    color: #9CA3AF;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}}
+.ts-footer-socials {{
+    display: flex;
+    gap: 14px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}}
+.ts-footer-social-link {{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: {WHITE} !important;
+    text-decoration: none !important;
+    transition: background 0.15s;
+}}
+.ts-footer-social-link:hover {{
+    background: rgba(255,255,255,0.14);
+}}
+.ts-footer-divider {{
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.10);
+    margin: 16px 0;
+}}
+.ts-footer-copy {{
+    font-size: 11px;
+    color: #6B7280;
+    line-height: 1.6;
+}}
+.ts-footer-copy a {{
+    color: {CORAL} !important;
+    text-decoration: none !important;
 }}
 </style>
 """, unsafe_allow_html=True)
 
 # ── Data loading ───────────────────────────────────────────────────────────
-# Google Sheet CSV export URL (gid points to the correct tab)
 SHEET_ID  = "19uHt6vN_DPJcb-TJd1D7TW3gYBXMnA5PUvR4MjWgj-s"
 SHEET_GID = "215387106"
 SHEET_CSV_URL = (
     f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
     f"/export?format=csv&gid={SHEET_GID}"
 )
-
-# Fallback local CSV (used if the Sheet is unreachable)
 CSV_FILE = "hongkong_schools.csv"
 LOGO_URL = "https://raw.githubusercontent.com/ruth852/hk-schools-portal/main/PNG%20Logo.png"
 
 
-@st.cache_data(ttl=300)   # refresh from Sheet every 5 minutes
+@st.cache_data(ttl=300)
 def load_data():
     try:
         df = pd.read_csv(SHEET_CSV_URL, engine="python", on_bad_lines="skip").fillna("")
     except Exception:
-        # Fallback to local CSV if Sheet is unreachable
         if os.path.exists(CSV_FILE):
             df = pd.read_csv(CSV_FILE, engine="python", on_bad_lines="skip").fillna("")
         else:
-            st.error("❌ Unable to load school data. Please check your internet connection.")
+            st.error("❌ Unable to load school data.")
             st.stop()
 
     df.columns = df.columns.astype(str).str.strip()
-
-    # Remove any fully-empty or unnamed columns (e.g. blank columns in the Sheet)
     df = df.loc[:, ~df.columns.str.match(r'^Unnamed|^$')]
 
-    # Deduplicate column names — keep the first occurrence of each
     seen = set()
     deduped = []
     for col in df.columns:
@@ -519,18 +600,13 @@ def load_data():
             seen.add(col)
             deduped.append(col)
     df.columns = deduped
-    # Drop any _dup columns
     df = df[[c for c in df.columns if not c.endswith("_dup")]]
 
-    # Normalise the Level column — Sheet may omit the emoji prefix
     if "Level" in df.columns and "🪜 Level" not in df.columns:
         df.rename(columns={"Level": "🪜 Level"}, inplace=True)
-
-    # Backwards-compat: rename old Annual Fees column
     if "Annual Fees" in df.columns and "Tuition Fees (HK$)" not in df.columns:
         df.rename(columns={"Annual Fees": "Tuition Fees (HK$)"}, inplace=True)
 
-    # Ensure all expected columns exist (fills with empty string if missing)
     required = ["Name of School", "Curriculum", "District", "Type",
                 "🪜 Level", "Tuition Fees (HK$)", "Fee Year", "Capital Levy (HK$)",
                 "Debenture (HK$)", "Fee Notes", "Description", "Photo URL", "Logo URL",
@@ -541,7 +617,6 @@ def load_data():
         if col not in df.columns:
             df[col] = ""
 
-    # Filter: only show published rows (blank Status also treated as published)
     df["Status"] = df["Status"].astype(str).str.strip().str.lower()
     df = df[df["Status"].isin(["published", "nan", ""])]
     df = df.reset_index(drop=True)
@@ -571,9 +646,32 @@ def district_gradient(district: str) -> str:
     return DISTRICT_GRADIENTS.get(str(district), DEFAULT_GRADIENT)
 
 
+# ── Shortlist helpers ──────────────────────────────────────────────────────
+def encode_shortlist(names: list[str]) -> str:
+    """Encode a list of school names into a URL-safe base64 string."""
+    joined = "||".join(names)
+    return base64.urlsafe_b64encode(joined.encode()).decode()
+
+
+def decode_shortlist(encoded: str) -> list[str]:
+    """Decode a base64 shortlist string back to a list of names."""
+    try:
+        decoded = base64.urlsafe_b64decode(encoded.encode()).decode()
+        return [n for n in decoded.split("||") if n.strip()]
+    except Exception:
+        return []
+
+
 # ── Session state ──────────────────────────────────────────────────────────
 if "selected_school" not in st.session_state:
     st.session_state.selected_school = None
+if "shortlist" not in st.session_state:
+    # Initialise from URL param if present
+    params = st.query_params
+    if "sl" in params:
+        st.session_state.shortlist = decode_shortlist(params["sl"])
+    else:
+        st.session_state.shortlist = []
 
 
 # ── Load data ──────────────────────────────────────────────────────────────
@@ -610,13 +708,49 @@ with st.sidebar:
     ))
     selected_level = st.selectbox("", all_levels, label_visibility="collapsed")
 
+    # ── Shortlist panel ──
+    st.markdown("---")
+    shortlist = st.session_state.shortlist
+    if shortlist:
+        st.markdown(
+            "<div class='ts-shortlist-box'>"
+            "<div class='ts-shortlist-title'>❤️ My Shortlist (" + str(len(shortlist)) + ")</div>"
+            + "".join(f"<div class='ts-shortlist-item'>{n}</div>" for n in shortlist)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+        # Shareable link
+        encoded = encode_shortlist(shortlist)
+        share_url = f"https://hk-schools.streamlit.app/?sl={encoded}"
+        st.markdown(
+            f"<div style='margin-bottom:8px'>"
+            f"<a href='{share_url}' target='_blank' "
+            f"style='font-size:12px;color:{TEAL};font-weight:600;text-decoration:none'>"
+            f"🔗 Share my shortlist</a></div>",
+            unsafe_allow_html=True,
+        )
+        if st.button("Clear shortlist", use_container_width=True):
+            st.session_state.shortlist = []
+            st.query_params.clear()
+            st.rerun()
+    else:
+        st.markdown(
+            f"<div style='font-size:12px;color:{GREY_TXT};margin-bottom:8px'>"
+            "Tap ❤️ on any school card to add it to your shortlist."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+    # ── WhatsApp CTA ──
     st.markdown("---")
     st.markdown(
-        f"<div style='font-size:11px;color:{GREY_TXT};text-align:center'>"
-        "Need help choosing a school?<br>"
-        f"<a href='https://wa.me/85296601584' style='color:{CORAL};font-weight:600'>"
+        f"<div style='font-size:14px;color:{BLACK};font-weight:600;text-align:center;margin-bottom:4px'>"
+        "Need help choosing a school?</div>"
+        f"<div style='text-align:center;margin-bottom:4px'>"
+        f"<a href='https://wa.me/85296601584' target='_blank' "
+        f"style='font-size:15px;color:{CORAL};font-weight:700;text-decoration:none'>"
         "💬 WhatsApp us</a></div>",
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
 
@@ -667,10 +801,6 @@ st.markdown(f"""
 
 
 # ── School profile dialog ──────────────────────────────────────────────────
-# st.dialog renders a native modal with a built-in ✕ close button in the
-# top-right corner. Closing it (via the ✕ or pressing Escape) automatically
-# clears the dialog — no custom close logic needed.
-
 @st.dialog("School Profile", width="large")
 def show_profile(row: dict):
     name       = str(row.get("Name of School", "")).strip()
@@ -694,18 +824,18 @@ def show_profile(row: dict):
     initials   = get_initials(name)
     grad       = district_gradient(district)
 
-    def _nv(v):  # returns True if value is non-empty and not a pandas NaN string
+    def _nv(v):
         return bool(v) and v not in ("nan", "N/A", "None", "none")
 
     # ── Hero image ──
     if photo_url.startswith("http"):
         st.markdown(
-            f'<div class="ts-modal-hero-wrap"><img src="{photo_url}" alt="{name}"></div>',
+            '<div class="ts-modal-hero-wrap"><img src="' + photo_url + '" alt="' + name + '"></div>',
             unsafe_allow_html=True,
         )
     else:
         st.markdown(
-            f'<div class="ts-modal-hero-placeholder" style="background:{grad}">{initials}</div>',
+            '<div class="ts-modal-hero-placeholder" style="background:' + grad + '">' + initials + '</div>',
             unsafe_allow_html=True,
         )
 
@@ -716,28 +846,28 @@ def show_profile(row: dict):
             st.image(logo_url, width=80)
         else:
             st.markdown(
-                f'<div class="ts-modal-logo-fallback">{initials}</div>',
+                '<div class="ts-modal-logo-fallback">' + initials + '</div>',
                 unsafe_allow_html=True,
             )
     with name_col:
-        st.markdown(f'<div class="ts-modal-name">{name}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ts-modal-name">' + name + '</div>', unsafe_allow_html=True)
 
     # ── Tags ──
     tags_html = ""
     if district:
-        tags_html += f'<span class="ts-tag ts-tag-district">📍 {district}</span>'
+        tags_html += '<span class="ts-tag ts-tag-district">📍 ' + district + '</span>'
     if curriculum:
-        tags_html += f'<span class="ts-tag ts-tag-curriculum">📚 {curriculum}</span>'
+        tags_html += '<span class="ts-tag ts-tag-curriculum">📚 ' + curriculum + '</span>'
     if level:
-        tags_html += f'<span class="ts-tag ts-tag-level">🪜 {level}</span>'
+        tags_html += '<span class="ts-tag ts-tag-level">🪜 ' + level + '</span>'
     if stype:
-        tags_html += f'<span class="ts-tag ts-tag-type">{stype}</span>'
+        tags_html += '<span class="ts-tag ts-tag-type">' + stype + '</span>'
     if tags_html:
-        st.markdown(f'<div class="ts-modal-tags">{tags_html}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ts-modal-tags">' + tags_html + '</div>', unsafe_allow_html=True)
 
     # ── Description ──
     if desc:
-        st.markdown(f'<p class="ts-modal-desc">{desc}</p>', unsafe_allow_html=True)
+        st.markdown('<p class="ts-modal-desc">' + desc + '</p>', unsafe_allow_html=True)
 
     # ── Detail grid ──
     def _field(label, value):
@@ -749,19 +879,19 @@ def show_profile(row: dict):
         return ""
 
     grid_html = ('<div class="ts-modal-grid">'
-        + _field("District",    f"\U0001f4cd {district}" if district else "")
-        + _field("Curriculum",  f"\U0001f4da {curriculum}" if curriculum else "")
+        + _field("District",    "📍 " + district if district else "")
+        + _field("Curriculum",  "📚 " + curriculum if curriculum else "")
         + _field("School Type", stype)
-        + _field("Levels",      f"\U0001fa9c {level}" if level else "")
-        + _field("Head",        f"\U0001f464 {head}" if head else "")
+        + _field("Levels",      "🪜 " + level if level else "")
+        + _field("Head",        "👤 " + head if head else "")
         + _field("Est.",        year_est)
         + _field("Language(s)", languages)
-        + _field("Students",    f"\U0001f465 {students}" if students else "")
+        + _field("Students",    "👥 " + students if students else "")
         + _field("Age Range",   age_range)
         + '</div>')
     st.markdown(grid_html, unsafe_allow_html=True)
 
-    # ── Fee box — built with plain concatenation to avoid f-string brace issues ──
+    # ── Fee box ──
     def _fee_row(label, value):
         if value and value not in ("nan", "N/A", "None", "none", ""):
             return (
@@ -785,11 +915,9 @@ def show_profile(row: dict):
     st.markdown('<div class="ts-fee-box">' + fee_inner + '</div>', unsafe_allow_html=True)
 
     # ── Embedded Google Map ──
-    # Uses the Google Maps Embed API (no API key required for the search embed).
-    # The iframe searches for the school name + Hong Kong so it centres on the
-    # correct location without needing a stored address.
-    map_query = urllib.parse.quote(f"{name} Hong Kong")
+    map_query     = urllib.parse.quote(f"{name} Hong Kong")
     map_embed_url = f"https://maps.google.com/maps?q={map_query}&output=embed&z=15"
+    maps_url      = f"https://www.google.com/maps/search/?api=1&query={map_query}"
 
     st.markdown(
         '<div style="margin-bottom:16px">'
@@ -803,32 +931,38 @@ def show_profile(row: dict):
         unsafe_allow_html=True,
     )
 
-    # ── PDF download + action buttons ──
-    query_str = urllib.parse.quote(f"{name} Hong Kong")
-    maps_url  = f"https://www.google.com/maps/search/?api=1&query={query_str}"
-    wa_msg    = urllib.parse.quote(f"Hi! I would like to enquire about {name}.")
-    wa_url    = f"https://wa.me/85296601584?text={wa_msg}"
+    # ── Enquiry box + action buttons ──
+    wa_msg = urllib.parse.quote(
+        f"Hi! I'm interested in {name} and would love some guidance on fit, "
+        f"admissions readiness and next steps. Can you help?"
+    )
+    wa_url = f"https://wa.me/85296601584?text={wa_msg}"
 
     st.markdown(
-        f'<div class="ts-modal-btns">'
-        f'<a href="{wa_url}" target="_blank" class="ts-btn ts-btn-primary">💬 WhatsApp Enquiry</a>'
-        f'<a href="{maps_url}" target="_blank" class="ts-btn ts-btn-secondary">📍 Open in Maps</a>'
-        f'</div>',
+        '<div class="ts-enquiry-box">'
+        '<div class="eq-title">Interested in this school?</div>'
+        '<div class="eq-body">Speak with a Top Schools advisor for guidance on fit, '
+        'admissions readiness and next steps.</div>'
+        '<a href="' + wa_url + '" target="_blank" class="ts-btn ts-btn-primary">'
+        '💬 Submit Enquiry (Opens WhatsApp)</a>'
+        '</div>',
         unsafe_allow_html=True,
     )
 
-
+    st.markdown(
+        '<a href="' + maps_url + '" target="_blank" class="ts-btn ts-btn-secondary">'
+        '📍 Open in Maps</a>',
+        unsafe_allow_html=True,
+    )
 
 
 # Open the dialog if a school has been selected
 if st.session_state.selected_school is not None:
     show_profile(st.session_state.selected_school)
-    # Reset after dialog closes so re-opening works cleanly
     st.session_state.selected_school = None
 
 
 # ── Featured schools ──────────────────────────────────────────────────────
-# Partial-match list: a school is featured if any keyword appears in its name.
 FEATURED_KEYWORDS = [
     "Shrewsbury", "Nord Anglia", "Chinese International",
     "Hong Kong International School", "HKIS",
@@ -856,20 +990,27 @@ if fdf.empty:
 else:
     COLS = 3
 
-    # Split into featured (top) and standard (below)
     featured_mask = fdf["Name of School"].astype(str).apply(is_featured)
     featured_df   = fdf[featured_mask]
     standard_df   = fdf[~featured_mask]
 
-    def render_card_grid(grid_df, section_label=None):
-        """Render a section label (optional) then a 3-column card grid."""
+    def render_card_grid(grid_df, section_label=None, featured_section=False):
         if grid_df.empty:
             return
-        if section_label:
+
+        if featured_section and not grid_df.empty:
             st.markdown(
-                f'<div class="ts-featured-section-label">{section_label}</div>',
+                '<div class="ts-featured-banner">'
+                '<div class="ts-featured-banner-title">⭐ Featured Schools</div>'
+                '<div class="ts-featured-banner-sub">Handpicked by the Top Schools team</div>',
                 unsafe_allow_html=True,
             )
+        elif section_label:
+            st.markdown(
+                '<div class="ts-featured-section-label">' + section_label + '</div>',
+                unsafe_allow_html=True,
+            )
+
         rows_data = [grid_df.iloc[i:i+COLS] for i in range(0, len(grid_df), COLS)]
         for row_group in rows_data:
             cols = st.columns(COLS)
@@ -884,13 +1025,20 @@ else:
                 initials   = get_initials(name)
                 grad       = district_gradient(district)
                 featured   = is_featured(name)
+                in_shortlist = name in st.session_state.shortlist
+                heart_icon = "❤️" if in_shortlist else "🤍"
 
                 if photo_url.startswith("http"):
-                    photo_html = ('<div class="ts-card-hero-wrap">'
-                                  '<img src="' + photo_url + '" alt="' + name + '">'
-                                  '</div>')
+                    photo_html = (
+                        '<div class="ts-card-hero-wrap">'
+                        '<img src="' + photo_url + '" alt="' + name + '">'
+                        '</div>'
+                    )
                 else:
-                    photo_html = '<div class="ts-card-photo-placeholder" style="background:' + grad + '">' + initials + '</div>'
+                    photo_html = (
+                        '<div class="ts-card-photo-placeholder" style="background:' + grad + '">'
+                        + initials + '</div>'
+                    )
 
                 if logo_url.startswith("http"):
                     logo_html = '<img src="' + logo_url + '" class="ts-card-logo" alt="logo">'
@@ -906,13 +1054,13 @@ else:
                     tags_html += '<span class="ts-tag ts-tag-level">' + level + '</span>'
 
                 short_desc = (desc[:110] + "…") if len(desc) > 110 else desc
-
                 badge_html = '<div class="ts-featured-badge">⭐ Featured</div>' if featured else ""
                 card_class = 'ts-card ts-featured' if featured else 'ts-card'
 
                 card_html = (
                     '<div class="' + card_class + '">'
                     + photo_html
+                    + '<button class="ts-heart-btn" title="Shortlist">' + heart_icon + '</button>'
                     + '<div class="ts-card-body">'
                     + badge_html
                     + '<div class="ts-card-logo-row">'
@@ -927,35 +1075,67 @@ else:
 
                 with cols[col_idx]:
                     st.markdown(card_html, unsafe_allow_html=True)
-                    # Styled as the CTA row — full-width coral button that looks
-                    # like the "View full profile →" text row at the card bottom
-                    if st.button(
-                        "View full profile →",
-                        key=f"card_{name}",
-                        use_container_width=True,
-                    ):
-                        st.session_state.selected_school = school_row.to_dict()
-                        st.rerun()
 
-            st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+                    btn_col, heart_col = st.columns([4, 1])
+                    with btn_col:
+                        if st.button(
+                            "View full profile →",
+                            key=f"card_{name}",
+                            use_container_width=True,
+                        ):
+                            st.session_state.selected_school = school_row.to_dict()
+                            st.rerun()
+                    with heart_col:
+                        heart_label = "❤️" if in_shortlist else "🤍"
+                        if st.button(
+                            heart_label,
+                            key=f"heart_{name}",
+                            use_container_width=True,
+                            help="Remove from shortlist" if in_shortlist else "Add to shortlist",
+                        ):
+                            if in_shortlist:
+                                st.session_state.shortlist.remove(name)
+                            else:
+                                st.session_state.shortlist.append(name)
+                            # Update shareable URL
+                            if st.session_state.shortlist:
+                                st.query_params["sl"] = encode_shortlist(st.session_state.shortlist)
+                            else:
+                                st.query_params.clear()
+                            st.rerun()
 
-    # Render featured schools first, then the rest
-    render_card_grid(featured_df, section_label="⭐ Featured Schools")
+        if featured_section:
+            st.markdown('</div>', unsafe_allow_html=True)  # close ts-featured-banner
+        st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+
+    render_card_grid(featured_df, featured_section=True)
     if not featured_df.empty and not standard_df.empty:
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-        st.markdown(
-            f"<div class='ts-featured-section-label'>All Schools</div>",
-            unsafe_allow_html=True,
-        )
-    render_card_grid(standard_df)
+    render_card_grid(standard_df, section_label="All Schools")
 
 
 # ── Footer ─────────────────────────────────────────────────────────────────
-st.markdown("---")
 st.markdown(
-    f"<div style='text-align:center;font-size:12px;color:{GREY_TXT};padding:8px 0 16px'>"
-    f"Powered by <strong style='color:{CORAL}'>topschools</strong> · "
-    "Hong Kong's school discovery platform"
-    "</div>",
+    '<div class="ts-footer">'
+    '<div class="ts-footer-logo">'
+    '<img src="' + LOGO_URL + '" height="36" alt="topschools">'
+    '</div>'
+    '<div class="ts-footer-tagline">'
+    "Hong Kong's trusted school discovery platform.<br>"
+    "Helping families find the right school since 2024."
+    '</div>'
+    '<div class="ts-footer-socials">'
+    '<a href="https://www.instagram.com/topschoolshk" target="_blank" class="ts-footer-social-link">📸 Instagram</a>'
+    '<a href="https://www.linkedin.com/company/topschoolshk" target="_blank" class="ts-footer-social-link">💼 LinkedIn</a>'
+    '<a href="https://wa.me/85296601584" target="_blank" class="ts-footer-social-link">💬 WhatsApp</a>'
+    '<a href="https://topschoolshk.com" target="_blank" class="ts-footer-social-link">🌐 Website</a>'
+    '</div>'
+    '<hr class="ts-footer-divider">'
+    '<div class="ts-footer-copy">'
+    '© 2025 Top Schools HK. All rights reserved. · '
+    '<a href="https://topschoolshk.com/privacy">Privacy Policy</a> · '
+    '<a href="https://topschoolshk.com/terms">Terms of Use</a>'
+    '</div>'
+    '</div>',
     unsafe_allow_html=True,
 )
