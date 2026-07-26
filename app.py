@@ -603,32 +603,68 @@ div[data-testid="column"] > div > div > div > div > div > button {{
 """, unsafe_allow_html=True)
 
 # ── Data loading ───────────────────────────────────────────────────────────
+# Google Sheet CSV export URL (gid points to the correct tab)
+SHEET_ID  = "19uHt6vN_DPJcb-TJd1D7TW3gYBXMnA5PUvR4MjWgj-s"
+SHEET_GID = "215387106"
+SHEET_CSV_URL = (
+    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
+    f"/export?format=csv&gid={SHEET_GID}"
+)
+
+# Fallback local CSV (used if the Sheet is unreachable)
 CSV_FILE = "hongkong_schools.csv"
 LOGO_URL = "https://raw.githubusercontent.com/ruth852/hk-schools-portal/main/PNG%20Logo.png"
 
 
-def get_file_mtime(file_path):
-    return os.path.getmtime(file_path) if os.path.exists(file_path) else 0
+@st.cache_data(ttl=300)   # refresh from Sheet every 5 minutes
+def load_data():
+    try:
+        df = pd.read_csv(SHEET_CSV_URL, engine="python", on_bad_lines="skip").fillna("")
+    except Exception:
+        # Fallback to local CSV if Sheet is unreachable
+        if os.path.exists(CSV_FILE):
+            df = pd.read_csv(CSV_FILE, engine="python", on_bad_lines="skip").fillna("")
+        else:
+            st.error("❌ Unable to load school data. Please check your internet connection.")
+            st.stop()
 
-
-@st.cache_data
-def load_data(mtime):
-    if not os.path.exists(CSV_FILE):
-        st.error(f"❌ File `{CSV_FILE}` not found.")
-        st.stop()
-    df = pd.read_csv(CSV_FILE, engine="python", on_bad_lines="skip").fillna("")
     df.columns = df.columns.astype(str).str.strip()
+
+    # Remove any fully-empty or unnamed columns (e.g. blank columns in the Sheet)
+    df = df.loc[:, ~df.columns.str.match(r'^Unnamed|^$')]
+
+    # Deduplicate column names — keep the first occurrence of each
+    seen = set()
+    deduped = []
+    for col in df.columns:
+        if col in seen:
+            deduped.append(col + "_dup")
+        else:
+            seen.add(col)
+            deduped.append(col)
+    df.columns = deduped
+    # Drop any _dup columns
+    df = df[[c for c in df.columns if not c.endswith("_dup")]]
+
+    # Normalise the Level column — Sheet may omit the emoji prefix
+    if "Level" in df.columns and "🪜 Level" not in df.columns:
+        df.rename(columns={"Level": "🪜 Level"}, inplace=True)
+
+    # Backwards-compat: rename old Annual Fees column
+    if "Annual Fees" in df.columns and "Tuition Fees (HK$)" not in df.columns:
+        df.rename(columns={"Annual Fees": "Tuition Fees (HK$)"}, inplace=True)
+
+    # Ensure all expected columns exist (fills with empty string if missing)
     required = ["Name of School", "Curriculum", "District", "Type",
                 "🪜 Level", "Tuition Fees (HK$)", "Fee Year", "Capital Levy (HK$)",
                 "Debenture (HK$)", "Fee Notes", "Description", "Photo URL", "Logo URL",
                 "Research Status", "Status",
                 "Head", "Year Established", "Language(s) of Instruction",
                 "Student Numbers", "Age Range"]
-    if "Annual Fees" in df.columns and "Tuition Fees (HK$)" not in df.columns:
-        df.rename(columns={"Annual Fees": "Tuition Fees (HK$)"}, inplace=True)
     for col in required:
         if col not in df.columns:
             df[col] = ""
+
     # Filter: only show published rows (blank Status also treated as published)
     df["Status"] = df["Status"].astype(str).str.strip().str.lower()
     df = df[df["Status"].isin(["published", "nan", ""])]
@@ -665,7 +701,7 @@ if "selected_school" not in st.session_state:
 
 
 # ── Load data ──────────────────────────────────────────────────────────────
-df = load_data(get_file_mtime(CSV_FILE))
+df = load_data()
 
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
