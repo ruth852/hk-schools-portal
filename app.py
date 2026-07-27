@@ -577,6 +577,119 @@ SHEET_CSV_URL = (
 CSV_FILE = "hongkong_schools.csv"
 LOGO_URL = "https://raw.githubusercontent.com/ruth852/hk-schools-portal/main/PNG%20Logo.png"
 
+# ── IB Results lookup (2026) ───────────────────────────────────────────────
+IB_RESULTS = {
+    "ESF King George V School":                              "214 candidates | Average Score 36.7 (2026)",
+    "ESF Renaissance College Hong Kong":                     "134 candidates | Average Score 36.3 (2026)",
+    "ESF Sha Tin College":                                   "149 candidates | Average Score 37.7 (2026)",
+    "ESF South Island School":                               "Average Score 36.4 (2026)",
+    "ESF West Island School":                                "131 candidates | Average Score 37.1 (2026)",
+    "ESF Discovery College":                                 "90 candidates | Average Score 33.6 (2026)",
+    "Canadian International School (CDNIS)":                 "143 candidates | Average Score 39 (2026)",
+    "Chinese International School (CIS)":                    "Average Score 38.87 (2026)",
+    "German Swiss International School (International Stream) (GSIS)": "63 candidates | Average Score 42 (2026)",
+    "French International School of Hong Kong (FIS) (International Stream)": "Average Score 34 (2026)",
+    "Singapore International School Hong Kong":              "Average Score 38.4 (2026)",
+    "Nord Anglia International School and Preschool Hong Kong": "Average Score 35 (2026)",
+    "Malvern College Hong Kong":                             "Results not yet published (2026)",
+    "Yew Chung International School":                        "123 candidates (2026)",
+    "Christian Alliance International School of Hong Kong (CAIS)": "14 candidates | Average Score 37.8 (2026)",
+    "Hong Kong Academy (HKA)":                               "Average Score 32 (2026)",
+    "International College Hong Kong":                       "Average Score 33.6 (2026)",
+    "Independent Schools Foundation Academy \u5f18\u7acb\u66f8\u9662 (ISF)": "101 candidates | Average Score 38.5 (2026)",
+    "Han Academy":                                           "Average Score 38.6 (2026)",
+    "HKCA Po Leung Kuk School":                              "Average Score 40.2 (2026)",
+    "Victoria Shanghai Academy":                             "Average Score 38.1 (2026)",
+    "Harrow International School Hong Kong":                 "Results not yet published (2026)",
+}
+
+# ── School website URLs ────────────────────────────────────────────────────
+SCHOOL_WEBSITES = {
+    "Academy of Innovation Primary School (Guidepost)": "https://www.guidepostmontessori.com/hong-kong",
+    "American International School (AIS)": "https://www.ais.edu.hk",
+    "American School Hong Kong (ASHK)": "https://www.ashk.edu.hk",
+    "Anchors Academy": "https://www.anchorsacademy.edu.hk",
+    "Anfield International Kindergarten": "https://www.anfield.edu.hk",
+    "Anfield School": "https://www.anfield.edu.hk",
+    "Australian International School (AISHK)": "https://www.aishk.edu.hk",
+    "Bloom KKCA Academy & Saint Too Bloom Academy": "https://bloom.edu.hk",
+    "California School": "https://www.californiaschool.edu.hk",
+    "Canadian International School (CDNIS)": "https://www.cdnis.edu.hk",
+    "Carmel School of Hong Kong (Pre-school & Elementary) / Elsa High School": "https://www.carmel.edu.hk",
+    "Causeway Bay Victoria Kindergarten and International Kindergarten": "https://www.victoria.edu.hk",
+    "Chinese International School (CIS)": "https://www.cis.edu.hk",
+    "Christian Alliance International School of Hong Kong (CAIS)": "https://www.cais.edu.hk",
+    "Christian Alliance P.C. Lau Memorial International School": "https://www.capcl.edu.hk",
+    "Creative Secondary School": "https://www.css.edu.hk",
+    "Dalton School Hong Kong": "https://www.dalton.edu.hk",
+    "Discovery Bay International School": "https://www.dbis.edu.hk",
+    "DSC International School": "https://dsc.edu.hk",
+    "ESF Abacus International Kindergarten": "https://www.esf.edu.hk/abacus",
+    "ESF Beacon Hill School": "https://www.beaconhill.edu.hk",
+    "ESF Bradbury School": "https://www.bradbury.edu.hk",
+    "ESF Clearwater Bay School": "https://www.cwbs.edu.hk",
+    "ESF Discovery College": "https://www.dc.edu.hk",
+    "ESF Glenealy School": "https://www.glenealy.edu.hk",
+    "ESF Hillside International Kindergarten": "https://www.esf.edu.hk/hillside",
+    "ESF Island School": "https://www.island.edu.hk",
+    "ESF Kennedy School": "https://www.kennedy.edu.hk",
+    "ESF King George V School": "https://www.kgv.edu.hk",
+    "ESF Kornhill Kindergarten": "https://www.esf.edu.hk/kornhill",
+    "ESF Kowloon Junior School": "https://www.kjs.edu.hk",
+    "ESF Peak School": "https://www.peak.edu.hk",
+    "ESF Quarry Bay School": "https://www.qbs.edu.hk",
+    "ESF Renaissance College Hong Kong": "https://www.rchk.edu.hk",
+    "ESF Renaissance College Kindergarten": "https://www.rchk.edu.hk",
+    "ESF Sha Tin College": "https://www.stc.edu.hk",
+    "ESF Sha Tin Junior School": "https://www.stjs.edu.hk",
+    "ESF South Island School": "https://www.sis.edu.hk",
+    "ESF Tsing Yi International Kindergarten": "https://www.esf.edu.hk/tsingyikindergarten",
+    "ESF West Island School": "https://www.wis.edu.hk",
+    "ESF Wu Kai Sha International Kindergarten": "https://www.esf.edu.hk/wukaisha",
+    "French International School of Hong Kong (FIS) (International Stream)": "https://www.fis.edu.hk",
+    "German Swiss International School (International Stream) (GSIS)": "https://www.gsis.edu.hk",
+    "Guidepost Montessori": "https://www.guidepostmontessori.com/hong-kong",
+    "Han Academy": "https://www.hanacademy.edu.hk",
+    "Harrow International School Hong Kong": "https://www.harrowhongkong.hk",
+    "HKCA Po Leung Kuk School": "https://www.plkis.edu.hk",
+    "Hong Kong Academy (HKA)": "https://www.hkacademy.edu.hk",
+    "Hong Kong Adventist Academy": "https://www.hkaa.edu.hk",
+    "Hong Kong International School (HKIS)": "https://www.hkis.edu.hk",
+    "Independent Schools Foundation Academy \u5f18\u7acb\u66f8\u9662 (ISF)": "https://www.isf.edu.hk",
+    "Independent Schools Foundation Preschool (ISF)": "https://www.isf.edu.hk",
+    "International Christian School": "https://www.ics.edu.hk",
+    "International College Hong Kong": "https://www.ichk.edu.hk",
+    "International Montessori School": "https://www.montessori.edu.hk",
+    "Invictus School Hong Kong": "https://www.invictus.edu.hk",
+    "Japanese International School": "https://www.jis.edu.hk",
+    "Kellett School": "https://www.kellettschool.com",
+    "Kiangsu & Chekiang Primary School and Kiangsu-Chekiang College (International Section)": "https://www.kcc.edu.hk",
+    "Kingston International School": "https://www.kingston.edu.hk",
+    "Korean International School (International Stream)": "https://www.kis.edu.hk",
+    "Lantau International School": "https://www.lantauinternationalschool.com",
+    "Malvern College Hong Kong": "https://www.malverncollege.org.hk",
+    "Malvern College Preschool Hong Kong": "https://www.malverncollege.org.hk",
+    "Mills International Preschool": "https://www.instagram.com/millsinternational",
+    "Mori Lisa International Kindergarten": "https://www.facebook.com/MoriLisaInternational",
+    "Mulberry House International Kindergarten": "https://www.mulberryhouse.com.hk",
+    "Nord Anglia International School and Preschool Hong Kong": "https://www.nais.hk",
+    "Norwegian International School": "https://www.nis.edu.hk",
+    "Oxbridge School Hong Kong": "https://www.oxbridge.edu.hk",
+    "Parkview International Pre-School": "https://www.pips.edu.hk",
+    "Shrewsbury International School": "https://www.shrewsbury.edu.hk",
+    "Singapore International School Hong Kong": "https://www.singapore.edu.hk",
+    "Small World Christian Kindergarten": "https://smallworld.edu.hk",
+    "Stamford American School Hong Kong": "https://www.sas.edu.hk",
+    "SWCS YMCA of HK Christian School": "https://www.cs.edu.hk",
+    "The Harbour School": "https://www.harbourschool.hk",
+    "Victoria Educational Organisation": "https://www.victoria.edu.hk",
+    "Victoria Shanghai Academy": "https://www.vsa.edu.hk",
+    "Wycombe Abbey School Hong Kong": "https://www.wycombehk.com",
+    "Yew Chung International School": "https://www.ycis-hk.com",
+    "YK Pao": "https://www.ykpao.edu.hk",
+    "YMCA Christian Academy (YCA)": "https://www.yca.edu.hk",
+}
+
 
 @st.cache_data(ttl=300)
 def load_data():
@@ -895,6 +1008,10 @@ def show_profile(row: dict):
                     '</div>')
         return ""
 
+    # Look up website and IB result
+    website_url = SCHOOL_WEBSITES.get(name, "")
+    ib_result   = IB_RESULTS.get(name, "")
+
     grid_html = ('<div class="ts-modal-grid">'
         + _field("District",    "📍 " + district if district else "")
         + _field("Curriculum",  "📚 " + curriculum if curriculum else "")
@@ -907,6 +1024,29 @@ def show_profile(row: dict):
         + _field("Age Range",   age_range)
         + '</div>')
     st.markdown(grid_html, unsafe_allow_html=True)
+
+    # ── Website link ──
+    if website_url:
+        st.markdown(
+            f'<a href="{website_url}" target="_blank" '
+            f'style="display:inline-flex;align-items:center;gap:6px;'
+            f'font-size:13px;font-weight:600;color:{TEAL};text-decoration:none;'
+            f'margin-bottom:12px;">'
+            f'🌐 Visit Official Website</a>',
+            unsafe_allow_html=True,
+        )
+
+    # ── IB Results ──
+    if ib_result:
+        st.markdown(
+            '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;'
+            'padding:12px 16px;margin-bottom:14px;">'
+            '<div style="font-size:10px;font-weight:700;text-transform:uppercase;'
+            'letter-spacing:0.07em;color:#15803D;margin-bottom:4px">IB Diploma Results</div>'
+            '<div style="font-size:14px;font-weight:600;color:#166534">' + ib_result + '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
     # ── Fee box ──
     def _fee_row(label, value):
