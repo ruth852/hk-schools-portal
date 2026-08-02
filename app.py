@@ -224,24 +224,41 @@ st.markdown(f"""
     overflow: hidden;
 }}
 
-/* ── Card CTA button — styled as coral text row ── */
+/* ── Card CTA button — solid coral pill ── */
 [data-testid="stVerticalBlock"] [data-testid="stButton"] > button {{
-    background: transparent !important;
+    background: {CORAL} !important;
     border: none !important;
-    border-top: 1px solid {GREY_BD} !important;
-    border-radius: 0 0 14px 14px !important;
-    color: {CORAL} !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
+    border-radius: 8px !important;
+    color: #FFFFFF !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
     padding: 10px 16px !important;
     width: 100% !important;
-    text-align: left !important;
+    text-align: center !important;
     cursor: pointer !important;
-    margin-top: -4px !important;
-    box-shadow: none !important;
+    margin-top: 4px !important;
+    box-shadow: 0 2px 6px rgba(235,89,70,0.25) !important;
+    transition: background 0.15s ease, box-shadow 0.15s ease !important;
+    letter-spacing: 0.01em !important;
 }}
 [data-testid="stVerticalBlock"] [data-testid="stButton"] > button:hover {{
-    background: {GREY_BG} !important;
+    background: #d44a38 !important;
+    box-shadow: 0 4px 12px rgba(235,89,70,0.35) !important;
+    color: #FFFFFF !important;
+}}
+/* Heart button — keep neutral/ghost style */
+[data-testid="stVerticalBlock"] [data-testid="stButton"]:has(button[kind="secondary"]) > button {{
+    background: transparent !important;
+    border: 1px solid {GREY_BD} !important;
+    border-radius: 8px !important;
+    color: {GREY_TXT} !important;
+    font-size: 16px !important;
+    box-shadow: none !important;
+    margin-top: 4px !important;
+}}
+[data-testid="stVerticalBlock"] [data-testid="stButton"]:has(button[kind="secondary"]) > button:hover {{
+    background: #FFF1F0 !important;
+    border-color: {CORAL} !important;
     color: {CORAL} !important;
 }}
 .ts-heart-btn {{ z-index: 10; }}
@@ -793,6 +810,15 @@ if "shortlist" not in st.session_state:
 # ── Load data ──────────────────────────────────────────────────────────────
 df = load_data()
 
+# ── Deep link: ?school=<name> auto-opens the profile dialog ────────────────
+_params = st.query_params
+if "school" in _params and st.session_state.selected_school is None:
+    _target = _params["school"].strip()
+    # Case-insensitive match against school names
+    _match = df[df["Name of School"].str.strip().str.lower() == _target.lower()]
+    if not _match.empty:
+        st.session_state.selected_school = _match.iloc[0].to_dict()
+
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -1201,7 +1227,10 @@ def show_calculator():
 # Open the dialog if a school has been selected
 if st.session_state.selected_school is not None:
     show_profile(st.session_state.selected_school)
-    st.session_state.selected_school = None
+    # Only clear after dialog is dismissed (i.e. when no ?school= param driving it)
+    _params2 = st.query_params
+    if "school" not in _params2:
+        st.session_state.selected_school = None
 
 if st.session_state.show_calc:
     show_calculator()
@@ -1322,10 +1351,10 @@ else:
                 with cols[col_idx]:
                     st.markdown(card_html, unsafe_allow_html=True)
 
-                    btn_col, heart_col = st.columns([4, 1])
+                    btn_col, heart_col = st.columns([5, 1])
                     with btn_col:
                         if st.button(
-                            "View full profile →",
+                            "View Full Profile",
                             key=f"card_{name}",
                             use_container_width=True,
                         ):
